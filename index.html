@@ -1,0 +1,1812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>68 Point Weekly Habit Tracker</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    .font-handwriting {
+      font-family: 'Caveat', cursive;
+    }
+    /* Sticky note aesthetic mode */
+    body.sticky-theme {
+      background-color: #f3ead6;
+      color: #1e293b;
+    }
+    .sticky-card {
+      background: linear-gradient(145deg, #fff9b1 0%, #fef08a 100%);
+      box-shadow: 4px 8px 18px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255,255,255,0.6);
+      border: 1px solid #fde047;
+    }
+    .dot-cell {
+      transition: all 0.15s ease;
+    }
+    .dot-cell:active {
+      transform: scale(0.9);
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen transition-colors duration-300">
+
+  <!-- Top Navigation & Score Bar -->
+  <header id="appHeader" class="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div id="brandBadge" class="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex flex-col items-center justify-center font-bold shadow-md shadow-amber-500/20">
+          <span class="text-xs leading-none">68</span>
+          <span class="text-[10px] leading-none font-semibold">PTS</span>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base sm:text-lg tracking-tight">Weekly Habit Tracker</h1>
+            <span id="syncStatusBadge" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Local Saved</span>
+          </div>
+          <p class="text-xs text-slate-400">Sun – Sat cycle • Nightly check-in & Sunday review</p>
+        </div>
+      </div>
+
+      <!-- Week Selector & Live Score Pill -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div class="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-1">
+          <button id="prevWeekBtn" type="button" class="px-2 py-1 rounded hover:bg-slate-800 text-slate-300 text-xs font-medium" title="Previous Week">◀</button>
+          <select id="weekSelector" aria-label="Select Week" class="bg-transparent text-xs sm:text-sm font-semibold px-2 py-1 text-slate-100 focus:outline-none cursor-pointer"></select>
+          <button id="nextWeekBtn" type="button" class="px-2 py-1 rounded hover:bg-slate-800 text-slate-300 text-xs font-medium" title="Next Week">▶</button>
+        </div>
+
+        <div class="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl">
+          <span class="text-xs text-amber-300 font-medium">Score</span>
+          <span id="headerScoreText" class="text-base sm:text-lg font-extrabold text-amber-400">0 / 68</span>
+        </div>
+
+        <button id="toggleStickyModeBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-amber-400/40 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20 transition">
+          Sticky Note Style: Off
+        </button>
+
+        <button id="openSupabaseModalBtn" type="button" class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition">
+          Supabase / Export
+        </button>
+      </div>
+    </div>
+
+    <!-- Primary View Tabs -->
+    <div class="max-w-6xl mx-auto px-4 flex items-center gap-1 overflow-x-auto border-t border-slate-900/80 pt-1">
+      <button id="tabBoardBtn" type="button" class="view-tab px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 border-amber-400 text-amber-400 whitespace-nowrap">
+        Weekly Board (Post-It Grid)
+      </button>
+      <button id="tabNightlyBtn" type="button" class="view-tab px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap">
+        Nightly Bedtime Check-In
+      </button>
+      <button id="tabSummaryBtn" type="button" class="view-tab px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap">
+        Sunday Summary & Finalize
+      </button>
+      <button id="tabHistoryBtn" type="button" class="view-tab px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap">
+        Trends & History
+      </button>
+    </div>
+  </header>
+
+  <!-- Toast Banner -->
+  <div id="toastBanner" class="fixed bottom-5 right-5 z-50 hidden px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-semibold shadow-lg">
+    Saved!
+  </div>
+
+  <!-- Main Workspace -->
+  <main class="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- ==================== VIEW 1: WEEKLY BOARD (POST-IT + MATRIX) ==================== -->
+    <section id="viewBoard" class="space-y-6">
+      <!-- Top Status / Week Banner -->
+      <div id="boardCardContainer" class="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 sm:p-6 shadow-xl transition-all">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800/80">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2.5 flex-wrap">
+              <span id="weekDateBadge" class="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-bold text-sm tracking-tight">Nov 1 – Nov 7</span>
+              <span id="weekStatusPill" class="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-medium">Active Week</span>
+              <button id="newWeekQuickBtn" type="button" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                + New Week
+              </button>
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+              <label for="weekNoteInput" class="text-xs text-slate-400 font-medium">Weekly Note / Milestone:</label>
+              <input id="weekNoteInput" type="text" placeholder="e.g., St. Pete → LA!" class="bg-slate-950/60 border border-slate-800 rounded-lg px-2.5 py-1 text-xs sm:text-sm text-amber-300 placeholder-slate-500 focus:outline-none focus:border-amber-400 w-56 sm:w-72" />
+            </div>
+          </div>
+
+          <!-- Big Score Display (Matches top of sticky note: 48/68) -->
+          <div class="flex items-center gap-5 bg-slate-950/70 border border-slate-800/90 rounded-2xl px-4 py-3">
+            <div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Daily Dots</div>
+              <div id="dailyScoreSub" class="text-lg font-bold text-slate-100">0 / 56</div>
+            </div>
+            <div class="h-8 w-px bg-slate-800"></div>
+            <div>
+              <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Weekly Goals</div>
+              <div id="weeklyScoreSub" class="text-lg font-bold text-slate-100">0 / 12</div>
+            </div>
+            <div class="h-8 w-px bg-slate-800"></div>
+            <div>
+              <div class="text-[11px] uppercase tracking-wider text-amber-400 font-semibold">Total Score</div>
+              <div id="boardTotalScore" class="text-2xl sm:text-3xl font-black text-amber-400 font-handwriting tracking-wide">0 / 68</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Two-Column Sticky-Note Layout: Left = Weekly Goals & Averages, Right = 7x8 Daily Dot Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-5">
+
+          <!-- LEFT COLUMN: Weekly Goals (12 Points Total) -->
+          <div class="lg:col-span-5 space-y-5">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold flex items-center gap-2">
+                  <span>Weekly Goals & Sunday Inputs</span>
+                  <span class="text-xs px-2 py-0.5 rounded-md bg-amber-400/15 text-amber-300 font-semibold">12 pts</span>
+                </h2>
+                <p class="text-xs text-slate-400">Track sessions during the week; enter 3 averages on Sunday</p>
+              </div>
+              <button id="openScoringModalBtn" type="button" class="text-xs text-amber-400 hover:underline font-medium">
+                Point rules ⚙️
+              </button>
+            </div>
+
+            <!-- 1. End-of-Week Averages (Input on Sunday) -->
+            <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-3.5 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-sky-400">End-of-Week Averages (Sunday Input)</span>
+                <span class="text-[11px] text-slate-400">Auto-checks when target met</span>
+              </div>
+
+              <!-- Avg Sleep > 7 hrs -->
+              <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5">
+                <div class="min-w-0">
+                  <div class="text-xs sm:text-sm font-semibold text-slate-100">Avg sleep over 7 hours</div>
+                  <div class="text-[11px] text-slate-400">Target: &gt; 7:00 hr/night</div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input id="avgSleepInput" type="text" placeholder="e.g. 7:28" class="w-20 bg-slate-950 border border-slate-700 rounded-md px-2 py-1 text-xs text-center font-mono text-slate-100 focus:border-amber-400 focus:outline-none" />
+                  <button id="avgSleepCheckBtn" type="button" class="w-7 h-7 rounded-lg border border-slate-700 flex items-center justify-center text-sm font-bold transition" title="Toggle Avg Sleep Goal"></button>
+                </div>
+              </div>
+
+              <!-- Avg Bedtime < 12:00 -->
+              <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5">
+                <div class="min-w-0">
+                  <div class="text-xs sm:text-sm font-semibold text-slate-100">Avg bedtime before 12:00am</div>
+                  <div class="text-[11px] text-slate-400">Target: &lt; 12:00 AM (e.g. 11:15 pm)</div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input id="avgBedtimeInput" type="text" placeholder="11:15 pm" class="w-20 bg-slate-950 border border-slate-700 rounded-md px-2 py-1 text-xs text-center font-mono text-slate-100 focus:border-amber-400 focus:outline-none" />
+                  <button id="avgBedtimeCheckBtn" type="button" class="w-7 h-7 rounded-lg border border-slate-700 flex items-center justify-center text-sm font-bold transition" title="Toggle Avg Bedtime Goal"></button>
+                </div>
+              </div>
+
+              <!-- Avg Phone Use < 3:30 -->
+              <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5">
+                <div class="min-w-0">
+                  <div class="text-xs sm:text-sm font-semibold text-slate-100">Avg phone use &lt; 3:30</div>
+                  <div class="text-[11px] text-slate-400">Target: under 3 hr 30 min/day</div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input id="avgPhoneInput" type="text" placeholder="e.g. 3:12" class="w-20 bg-slate-950 border border-slate-700 rounded-md px-2 py-1 text-xs text-center font-mono text-slate-100 focus:border-amber-400 focus:outline-none" />
+                  <button id="avgPhoneCheckBtn" type="button" class="w-7 h-7 rounded-lg border border-slate-700 flex items-center justify-center text-sm font-bold transition" title="Toggle Avg Phone Goal"></button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Multi-Session Weekly Counters (Gym 4x, Meditate 2x) -->
+            <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-3.5 space-y-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Multi-Session Weekly Targets</span>
+
+              <!-- Gym 4 times -->
+              <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5">
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-black px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono">G</span>
+                    <span class="text-xs sm:text-sm font-semibold">Go to gym 4 times</span>
+                  </div>
+                  <div id="gymSubStatus" class="text-[11px] text-slate-400 mt-0.5">0 / 4 sessions completed</div>
+                </div>
+                <div id="gymSlotsContainer" class="flex items-center gap-1.5"></div>
+              </div>
+
+              <!-- Focused workdays 4 times -->
+              <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5">
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-black px-1.5 py-0.5 rounded bg-sky-400/20 text-sky-300 font-mono">Work</span>
+                    <span class="text-xs sm:text-sm font-semibold">Focused workdays (4×)</span>
+                  </div>
+                  <div id="workSubStatus" class="text-[11px] text-slate-400 mt-0.5">0 / 4 days completed</div>
+                </div>
+                <div id="workSlotsContainer" class="flex items-center gap-1.5"></div>
+              </div>
+
+              <!-- Meditate twice -->
+              <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5">
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-black px-1.5 py-0.5 rounded bg-purple-400/20 text-purple-300 font-mono">Med</span>
+                    <span class="text-xs sm:text-sm font-semibold">Meditate twice (2×)</span>
+                  </div>
+                  <div id="meditateSubStatus" class="text-[11px] text-slate-400 mt-0.5">0 / 2 sessions completed</div>
+                </div>
+                <div id="meditateSlotsContainer" class="flex items-center gap-1.5"></div>
+              </div>
+
+              <!-- Ab workout twice -->
+              <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5">
+                <div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-black px-1.5 py-0.5 rounded bg-rose-400/20 text-rose-300 font-mono">A</span>
+                    <span class="text-xs sm:text-sm font-semibold">Do ab workout twice (2×)</span>
+                  </div>
+                  <div id="absSubStatus" class="text-[11px] text-slate-400 mt-0.5">0 / 2 workouts completed</div>
+                </div>
+                <div id="absSlotsContainer" class="flex items-center gap-1.5"></div>
+              </div>
+            </div>
+
+            <!-- 3. Single-Check Weekly Habits (Ab, Yoga, Face Masks, No Gay Apps, No Jerk Off) -->
+            <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-3.5 space-y-2.5">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Weekly Checkboxes</span>
+              <div id="singleWeeklyList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2"></div>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: 7-Day x 8-Habit Dot Grid (56 Points) -->
+          <div class="lg:col-span-7 flex flex-col justify-between space-y-4">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h2 class="text-sm sm:text-base font-bold flex items-center gap-2">
+                  <span>Daily Habit Grid (Sun – Sat)</span>
+                  <span class="text-xs px-2 py-0.5 rounded-md bg-emerald-400/15 text-emerald-300 font-semibold">56 pts (8 × 7)</span>
+                </h2>
+                <p class="text-xs text-slate-400">Tap any cell to toggle your dot (●) for that day</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="checkAllTodayBtn" type="button" class="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 font-medium transition">
+                  Jump to Tonight's Check-In →
+                </button>
+              </div>
+            </div>
+
+            <!-- Responsive Matrix Table -->
+            <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/60 shadow-inner">
+              <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr id="matrixHeaderRow" class="border-b border-slate-800 text-xs text-slate-400">
+                    <!-- Populated via JS -->
+                  </tr>
+                </thead>
+                <tbody id="matrixBodyRows" class="divide-y divide-slate-800/70 text-xs sm:text-sm">
+                  <!-- Populated via JS -->
+                </tbody>
+                <tfoot>
+                  <tr id="matrixFooterRow" class="border-t border-slate-800 bg-slate-900/60 text-xs font-semibold text-slate-300">
+                    <!-- Daily totals row -->
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
+            <!-- Legend & Original Sticky Note Reference Collapsible -->
+            <div class="rounded-xl border border-slate-800/90 bg-slate-950/40 p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div class="text-xs text-slate-400 space-y-0.5">
+                <div class="font-semibold text-slate-200">Post-It Shorthand Codes:</div>
+                <div><span class="text-amber-300 font-mono">G</span> Gratitude • <span class="text-amber-300 font-mono">E</span> Eat &lt;11am • <span class="text-amber-300 font-mono">St</span> Stretch • <span class="text-amber-300 font-mono">Sk</span> Daily Skills • <span class="text-amber-300 font-mono">V</span> Vitamins • <span class="text-amber-300 font-mono">C</span> Phone &lt;4h • <span class="text-amber-300 font-mono">Z</span> Sleep &lt;12:30 • <span class="text-amber-300 font-mono">P</span> 150g+ Protein</div>
+              </div>
+              <button id="togglePhotoRefBtn" type="button" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shrink-0">
+                View Feb 1 Sticky Note Photo
+              </button>
+            </div>
+
+            <div id="photoRefDrawer" class="hidden rounded-xl border border-slate-800 bg-slate-900/80 p-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-amber-300">Original Post-It Note (Feb 1 — 48/68 pts, St. Pete → LA!)</span>
+                <button id="loadFeb1WeekBtn" type="button" class="text-xs px-2.5 py-1 rounded bg-amber-400 text-slate-950 font-bold hover:bg-amber-300">
+                  Switch to Feb 1 Week in App
+                </button>
+              </div>
+              <img src="data:image/jpeg;base64,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" alt="Original sticky note habit tracker" class="max-h-72 rounded-lg border border-slate-700 mx-auto object-contain" />
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 2: NIGHTLY BEDTIME CHECK-IN ==================== -->
+    <section id="viewNightly" class="hidden space-y-6">
+      <div class="max-w-2xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 shadow-xl space-y-5">
+        <div class="flex items-center justify-between flex-wrap gap-3 border-b border-slate-800 pb-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Nightly Routine</span>
+            <h2 class="text-lg sm:text-xl font-bold text-slate-100">Before-Bed Daily Check-In</h2>
+            <p class="text-xs text-slate-400">Tap each habit you accomplished today before going to sleep</p>
+          </div>
+          <!-- Day of Week Picker (Sun - Sat) -->
+          <div id="nightlyDaySelector" class="flex items-center gap-1 bg-slate-950 p-1.5 rounded-xl border border-slate-800"></div>
+        </div>
+
+        <!-- Progress Bar for Selected Day -->
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between text-xs">
+            <span id="nightlySelectedDayLabel" class="font-semibold text-slate-300">Sunday Progress</span>
+            <span id="nightlyDayScoreLabel" class="font-bold text-amber-400">0 / 8 accomplished</span>
+          </div>
+          <div class="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+            <div id="nightlyProgressBar" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-300" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- 8 Daily Goal Cards -->
+        <div id="nightlyChecklistContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
+
+        <!-- Quick Weekly Progress Loggers for Tonight -->
+        <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400">Did you also knock out any weekly goals today?</h3>
+            <span class="text-[11px] text-slate-400">Updates weekly board</span>
+          </div>
+          <div id="nightlyWeeklyQuickContainer" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <button id="markAllDayBtn" type="button" class="text-xs px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold transition">
+            Check All 8 for Today
+          </button>
+          <button id="backToBoardFromNightlyBtn" type="button" class="text-xs px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold transition">
+            Done — View Full Weekly Grid
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 3: SUNDAY SUMMARY & FINALIZE ==================== -->
+    <section id="viewSummary" class="hidden space-y-6">
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 shadow-xl space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">End-of-Week Review</span>
+            <h2 id="summaryWeekTitle" class="text-xl font-bold text-slate-100">Weekly Summary</h2>
+            <p class="text-xs text-slate-400">Every Sunday: enter your 3 weekly averages, review your breakdown out of 68, and start the next week.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="finalizeAndStartNextWeekBtn" type="button" class="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition">
+              ✓ Finalize Week & Start Next Sunday
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 1: Verify the 3 End-of-Week Averages -->
+        <div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <h3 class="text-sm font-bold text-amber-300">Step 1: Confirm Your 3 End-of-Week Averages</h3>
+            <span id="summaryAveragesStatus" class="text-xs text-slate-300"></span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-1.5">
+              <label for="sumSleepInput" class="text-xs font-semibold text-slate-300 block">Average Sleep (&gt; 7 hrs)</label>
+              <div class="flex items-center gap-2">
+                <input id="sumSleepInput" type="text" placeholder="e.g. 7:28" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-slate-100" />
+                <span id="sumSleepBadge" class="text-xs px-2 py-1 rounded font-bold"></span>
+              </div>
+            </div>
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-1.5">
+              <label for="sumBedtimeInput" class="text-xs font-semibold text-slate-300 block">Average Bedtime (&lt; 12:00am)</label>
+              <div class="flex items-center gap-2">
+                <input id="sumBedtimeInput" type="text" placeholder="e.g. 11:15 pm" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-slate-100" />
+                <span id="sumBedtimeBadge" class="text-xs px-2 py-1 rounded font-bold"></span>
+              </div>
+            </div>
+            <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 space-y-1.5">
+              <label for="sumPhoneInput" class="text-xs font-semibold text-slate-300 block">Average Phone Use (&lt; 3:30)</label>
+              <div class="flex items-center gap-2">
+                <input id="sumPhoneInput" type="text" placeholder="e.g. 3:15" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-sm font-mono text-slate-100" />
+                <span id="sumPhoneBadge" class="text-xs px-2 py-1 rounded font-bold"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scorecard KPIs -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <div class="text-xs text-slate-400">Final Score</div>
+            <div id="sumFinalScore" class="text-2xl font-black text-amber-400 mt-1">0 / 68</div>
+            <div id="sumGradeLabel" class="text-[11px] text-slate-400 mt-0.5">0% completion</div>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <div class="text-xs text-slate-400">Daily Habits (56 max)</div>
+            <div id="sumDailyPoints" class="text-2xl font-bold text-emerald-400 mt-1">0 / 56</div>
+            <div id="sumBestDayLabel" class="text-[11px] text-slate-400 mt-0.5">Best day: -</div>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <div class="text-xs text-slate-400">Weekly Goals (12 max)</div>
+            <div id="sumWeeklyPoints" class="text-2xl font-bold text-sky-400 mt-1">0 / 12</div>
+            <div id="sumGymMedLabel" class="text-[11px] text-slate-400 mt-0.5">Gym: 0/4 • Med: 0/2</div>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <div class="text-xs text-slate-400">Top Daily Habit</div>
+            <div id="sumTopHabit" class="text-base font-bold text-slate-100 mt-1 truncate">-</div>
+            <div id="sumFocusHabit" class="text-[11px] text-rose-400 mt-0.5 truncate">Needs focus: -</div>
+          </div>
+        </div>
+
+        <!-- Per-Habit Breakdown Bars -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-4 space-y-3">
+            <h3 class="text-sm font-bold text-slate-200">Daily Habits Consistency (Out of 7 Days)</h3>
+            <div id="summaryDailyBars" class="space-y-2.5"></div>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-4 space-y-3">
+            <h3 class="text-sm font-bold text-slate-200">Weekly Goals Checklist Report</h3>
+            <div id="summaryWeeklyReportList" class="space-y-2"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 4: TRENDS & HISTORY ==================== -->
+    <section id="viewHistory" class="hidden space-y-6">
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 shadow-xl space-y-6">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 class="text-lg font-bold text-slate-100">Weekly Score Progression (Out of 68)</h2>
+            <p class="text-xs text-slate-400">Compare your historical sticky notes and finalized weeks over time</p>
+          </div>
+        </div>
+
+        <div class="relative h-64 w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3">
+          <canvas id="historyChartCanvas"></canvas>
+        </div>
+
+        <div class="space-y-3">
+          <h3 class="text-sm font-bold text-slate-200">All Logged Weeks</h3>
+          <div id="historyCardsList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL 1: SCORING RULES (HOW 68 POINTS WORK) ==================== -->
+  <div id="scoringModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-lg w-full rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-slate-100">68-Point Scoring Formula</h3>
+        <button id="closeScoringModalBtn" type="button" class="text-slate-400 hover:text-white text-sm font-bold">✕</button>
+      </div>
+      <div class="text-xs text-slate-300 space-y-3 leading-relaxed">
+        <p>Your daily grid has <strong>8 daily habits × 7 days = 56 points</strong>, and your <strong>12 weekly goals = 12 points</strong> (1 point each) for a total of <strong>68 points</strong>.</p>
+        <p>Choose how you want the <strong>12 weekly points</strong> calculated:</p>
+        <div class="space-y-2">
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer">
+            <input type="radio" name="scoringModeRadio" value="weighted_bonus" class="mt-1" checked />
+            <div>
+              <div class="font-bold text-amber-300">Mode A (Standard): 12 Weekly Goals × 1 Point Each = 12 pts</div>
+              <div class="text-slate-400">Each of your 12 weekly goals earns 1 full point when its target is met (Gym 4/4, Focused Workdays 4/4, Meditate 2/2, Ab Workouts 2/2, ASL 1 hr, Yoga, Face Masks, No Gay Apps, No Jerk Off, and the 3 weekly averages).</div>
+            </div>
+          </label>
+          <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer">
+            <input type="radio" name="scoringModeRadio" value="per_session_cap" class="mt-1" />
+            <div>
+              <div class="font-bold text-emerald-300">Mode B: Per-Session Count (Capped at 12 pts)</div>
+              <div class="text-slate-400">Each individual Gym check (up to 4) and Meditation check (up to 2) counts as 1 point alongside the 8 single checkboxes (capped at 12 weekly points).</div>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="flex justify-end pt-2">
+        <button id="saveScoringModalBtn" type="button" class="px-4 py-2 rounded-xl bg-amber-400 text-slate-950 font-bold text-xs">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: SUPABASE SYNC & GITHUB PAGES DEPLOY ==================== -->
+  <div id="supabaseModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="max-w-xl w-full rounded-2xl border border-slate-800 bg-slate-900 p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-base font-bold text-slate-100">Supabase Cloud Sync & Backup</h3>
+          <p class="text-xs text-slate-400">Works offline via browser LocalStorage now — connect Supabase anytime</p>
+        </div>
+        <button id="closeSupabaseModalBtn" type="button" class="text-slate-400 hover:text-white text-sm font-bold">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="sbUrlInput" class="block font-semibold text-slate-300 mb-1">Supabase Project URL</label>
+            <input id="sbUrlInput" type="text" placeholder="https://xyzcompany.supabase.co" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:border-emerald-400 focus:outline-none" />
+          </div>
+          <div>
+            <label for="sbKeyInput" class="block font-semibold text-slate-300 mb-1">Supabase Anon Public Key</label>
+            <input id="sbKeyInput" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-100 focus:border-emerald-400 focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+          <button id="saveSupabaseConfigBtn" type="button" class="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold">
+            Save & Sync with Supabase
+          </button>
+          <button id="exportJsonBtn" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700">
+            Download JSON Backup
+          </button>
+          <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 cursor-pointer">
+            Import JSON
+            <input id="importJsonInput" type="file" accept=".json" class="hidden" />
+          </label>
+        </div>
+
+        <div class="rounded-xl border border-slate-800 bg-slate-950 p-3 space-y-1.5">
+          <div class="font-semibold text-slate-300">Supabase SQL Setup (Run once in Supabase SQL Editor when ready):</div>
+          <pre class="text-[11px] text-emerald-300 overflow-x-auto font-mono leading-relaxed">create table if not exists public.habit_weeks (
+  week_id text primary key,
+  start_date text not null,
+  payload jsonb not null,
+  updated_at timestamptz default now()
+);
+alter table public.habit_weeks enable row level security;
+create policy "Public anon access" on public.habit_weeks for all using (true) with check (true);</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== DEFINITIONS: HABITS & DAYS ====================
+    const DAYS = [
+      { key: 'sun', short: 'S', label: 'Sunday' },
+      { key: 'mon', short: 'M', label: 'Monday' },
+      { key: 'tue', short: 'T', label: 'Tuesday' },
+      { key: 'wed', short: 'W', label: 'Wednesday' },
+      { key: 'thu', short: 'Th', label: 'Thursday' },
+      { key: 'fri', short: 'F', label: 'Friday' },
+      { key: 'sat', short: 'S', label: 'Saturday' }
+    ];
+
+    const DAILY_HABITS = [
+      { id: 'gratitude', code: 'G', name: 'Express gratitude', desc: 'Write or reflect on daily gratitude' },
+      { id: 'breakfast', code: 'E', name: 'Eat breakfast before 11am', desc: 'First meal before 11:00 AM' },
+      { id: 'stretch', code: 'St', name: 'Stretch', desc: 'Daily mobility & stretching session' },
+      { id: 'skills', code: 'Sk', name: 'Do my daily skills', desc: 'Dedicated daily skill practice' },
+      { id: 'vitamins', code: 'V', name: 'Take vitamins', desc: 'Daily supplement & vitamin stack' },
+      { id: 'phone_daily', code: 'C', name: 'Use phone < 4 hours', desc: 'Keep daily screen time under 4:00' },
+      { id: 'sleep_before_1230', code: 'Z', name: 'Sleep before 12:30am', desc: 'In bed asleep before 12:30 AM' },
+      { id: 'protein', code: 'P', name: 'Eat > 150g protein', desc: 'Hit 150g+ daily protein target' }
+    ];
+
+    const SINGLE_WEEKLY_HABITS = [
+      { id: 'asl', code: 'ASL', name: 'ASL (1 hr deep language learning)' },
+      { id: 'yoga', code: 'Y', name: 'Do yoga' },
+      { id: 'facemask', code: 'M', name: 'Do face masks' },
+      { id: 'no_gay_apps', code: 'ØA', name: "Don't use gay apps" },
+      { id: 'no_jerk_off', code: 'ØJ', name: "Don't jerk off at all" }
+    ];
+
+    const STORAGE_KEY = 'postit_habit_tracker_v2';
+
+    // ==================== INITIAL DATA (PRE-LOADED WITH FEB 1 POST-IT + CURRENT WEEK) ====================
+    function createEmptyDailyGrid() {
+      const grid = {};
+      DAILY_HABITS.forEach(h => {
+        grid[h.id] = [false, false, false, false, false, false, false];
+      });
+      return grid;
+    }
+
+    function createInitialState() {
+      return {
+        activeView: 'board',
+        selectedDayIndex: 0, // Sunday default
+        stickyTheme: false,
+        scoringMode: 'weighted_bonus',
+        selectedWeekId: '2026-11-01',
+        supabaseUrl: '',
+        supabaseKey: '',
+        weeks: {
+          '2026-02-01': {
+            id: '2026-02-01',
+            label: 'Feb 1 – Feb 7 (Post-It)',
+            startDate: '2026-02-01',
+            note: 'St. Pete → LA!',
+            finalized: true,
+            // Exact 43 dots from user's Feb 1 sticky note photo!
+            daily: {
+              gratitude:         [true,  true,  true,  true,  true,  true,  true],  // 7
+              breakfast:         [true,  true,  true,  true,  true,  true,  true],  // 7
+              stretch:           [false, true,  true,  false, false, true,  false], // 3
+              skills:            [true,  true,  true,  true,  true,  true,  true],  // 7
+              vitamins:          [true,  true,  true,  true,  true,  true,  true],  // 7
+              phone_daily:       [true,  true,  false, true,  true,  false, true],  // 5
+              sleep_before_1230: [true,  true,  true,  true,  true,  true,  false], // 6
+              protein:           [false, false, false, false, false, false, true]   // 1 (Total = 43)
+            },
+            weekly: {
+              gymCount: 3,        // G ✓✓✓_ on sticky note
+              workCount: 4,       // Work ☑ on sticky note (4/4 focused workdays)
+              meditateCount: 0,   // Med □
+              absCount: 0,        // A _
+              asl: false,         // ASL _
+              yoga: false,        // Y _
+              facemask: false,    // M _
+              no_gay_apps: true,  // ØA ✓
+              no_jerk_off: true,  // ØJ ☑
+              avgSleepText: '7:28',
+              avgSleepMet: true,  // 7:28 hr sleep ☑
+              avgBedtimeText: '11:15 pm',
+              avgBedtimeMet: true,// 11:15 pm bedtime ☑
+              avgPhoneText: '',
+              avgPhoneMet: false  // 5 weekly checks + 43 daily = 48/68!
+            }
+          },
+          '2026-11-01': {
+            id: '2026-11-01',
+            label: 'Nov 1 – Nov 7 (Current Week)',
+            startDate: '2026-11-01',
+            note: 'Consistency week',
+            finalized: false,
+            daily: createEmptyDailyGrid(),
+            weekly: {
+              gymCount: 0,
+              workCount: 0,
+              meditateCount: 0,
+              absCount: 0,
+              asl: false,
+              yoga: false,
+              facemask: false,
+              no_gay_apps: false,
+              no_jerk_off: false,
+              avgSleepText: '',
+              avgSleepMet: false,
+              avgBedtimeText: '',
+              avgBedtimeMet: false,
+              avgPhoneText: '',
+              avgPhoneMet: false
+            }
+          }
+        }
+      };
+    }
+
+    let state = createInitialState();
+    let historyChartInstance = null;
+
+    // ==================== SAFELY LOAD / SAVE STATE ====================
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.weeks && Object.keys(parsed.weeks).length > 0) {
+            state = Object.assign(createInitialState(), parsed);
+          }
+        }
+      } catch (e) {
+        // Fallback to in-memory state if sandbox blocks localStorage
+      }
+    }
+
+    function saveState(toastMsg) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        // Ignore storage errors inside restricted iframe
+      }
+      if (toastMsg) {
+        showToast(toastMsg);
+      }
+      scheduleSupabasePush();
+    }
+
+    async function pullFromSupabase() {
+      if (!state.supabaseUrl || !state.supabaseKey) return;
+      const badge = document.getElementById('syncStatusBadge');
+      try {
+        if (badge) badge.textContent = 'Syncing...';
+        const sbHost = state.supabaseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        const res = await fetch(`https://${sbHost}/rest/v1/habit_weeks?select=*`, {
+          method: 'GET',
+          headers: {
+            'apikey': state.supabaseKey,
+            'Authorization': `Bearer ${state.supabaseKey}`
+          }
+        });
+        if (!res.ok) throw new Error('Supabase fetch error');
+        const rows = await res.json();
+        if (Array.isArray(rows) && rows.length > 0) {
+          rows.forEach(r => {
+            if (r.week_id && r.payload) {
+              state.weeks[r.week_id] = r.payload;
+            }
+          });
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          } catch (e) {}
+          renderAll();
+        }
+        if (badge) {
+          badge.textContent = '☁️ Supabase Synced';
+          badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+        }
+      } catch (err) {
+        if (badge) {
+          badge.textContent = 'Local Saved (Offline)';
+        }
+      }
+    }
+
+    function scheduleSupabasePush() {
+      if (!state.supabaseUrl || !state.supabaseKey) return;
+      clearTimeout(window.__sbPushTimer);
+      window.__sbPushTimer = setTimeout(async () => {
+        const badge = document.getElementById('syncStatusBadge');
+        try {
+          if (badge) badge.textContent = 'Saving to cloud...';
+          const sbHost = state.supabaseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+          const rows = Object.values(state.weeks).map(wk => ({
+            week_id: wk.id,
+            start_date: wk.startDate,
+            payload: wk,
+            updated_at: new Date().toISOString()
+          }));
+          const res = await fetch(`https://${sbHost}/rest/v1/habit_weeks?on_conflict=week_id`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': state.supabaseKey,
+              'Authorization': `Bearer ${state.supabaseKey}`,
+              'Prefer': 'resolution=merge-duplicates'
+            },
+            body: JSON.stringify(rows)
+          });
+          if (res.ok && badge) {
+            badge.textContent = '☁️ Supabase Synced';
+            badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+          }
+        } catch (e) {
+          if (badge) badge.textContent = 'Local Saved';
+        }
+      }, 450);
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toastBanner');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        el.classList.add('hidden');
+      }, 2200);
+    }
+
+    // ==================== SCORING ENGINE (OUT OF 68) ====================
+    function calculateWeekScore(week) {
+      let dailyPoints = 0;
+      const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+      const habitTotals = {};
+
+      DAILY_HABITS.forEach(h => {
+        const arr = (week.daily && week.daily[h.id]) ? week.daily[h.id] : [false,false,false,false,false,false,false];
+        let count = 0;
+        arr.forEach((val, idx) => {
+          if (val) {
+            dailyPoints += 1;
+            dayTotals[idx] += 1;
+            count += 1;
+          }
+        });
+        habitTotals[h.id] = count;
+      });
+
+      const w = week.weekly || {};
+      let weeklyPoints = 0;
+
+      if (state.scoringMode === 'per_session_cap') {
+        weeklyPoints += Math.min(4, w.gymCount || 0);
+        weeklyPoints += Math.min(4, w.workCount || 0);
+        weeklyPoints += Math.min(2, w.meditateCount || 0);
+        weeklyPoints += Math.min(2, w.absCount || 0);
+        if (w.asl) weeklyPoints += 1;
+        if (w.yoga) weeklyPoints += 1;
+        if (w.facemask) weeklyPoints += 1;
+        if (w.no_gay_apps) weeklyPoints += 1;
+        if (w.no_jerk_off) weeklyPoints += 1;
+        if (w.avgSleepMet) weeklyPoints += 1;
+        if (w.avgBedtimeMet) weeklyPoints += 1;
+        if (w.avgPhoneMet) weeklyPoints += 1;
+        weeklyPoints = Math.min(12, weeklyPoints);
+      } else {
+        // Standard Mode A: 12 weekly goals x 1 pt each = 12 pts
+        if ((w.gymCount || 0) >= 4) weeklyPoints += 1;
+        if ((w.workCount || 0) >= 4) weeklyPoints += 1;
+        if ((w.meditateCount || 0) >= 2) weeklyPoints += 1;
+        if ((w.absCount || 0) >= 2) weeklyPoints += 1;
+        if (w.asl) weeklyPoints += 1;
+        if (w.yoga) weeklyPoints += 1;
+        if (w.facemask) weeklyPoints += 1;
+        if (w.no_gay_apps) weeklyPoints += 1;
+        if (w.no_jerk_off) weeklyPoints += 1;
+        if (w.avgSleepMet) weeklyPoints += 1;
+        if (w.avgBedtimeMet) weeklyPoints += 1;
+        if (w.avgPhoneMet) weeklyPoints += 1;
+        weeklyPoints = Math.min(12, weeklyPoints);
+      }
+
+      return {
+        dailyPoints,
+        weeklyPoints,
+        total: dailyPoints + weeklyPoints,
+        dayTotals,
+        habitTotals
+      };
+    }
+
+    // ==================== AUTO-EVALUATE SUNDAY AVERAGES ====================
+    function evaluateSleepInput(str) {
+      if (!str || !str.trim()) return null;
+      const clean = str.trim();
+      const match = clean.match(/^(\d+)(?::(\d+))?/);
+      if (!match) return null;
+      const hrs = parseInt(match[1], 10);
+      const mins = match[2] ? parseInt(match[2], 10) : 0;
+      const totalMinutes = hrs * 60 + mins;
+      return totalMinutes >= 420; // >= 7 hours
+    }
+
+    function evaluatePhoneInput(str) {
+      if (!str || !str.trim()) return null;
+      const clean = str.trim();
+      const match = clean.match(/^(\d+)(?::(\d+))?/);
+      if (!match) return null;
+      const hrs = parseInt(match[1], 10);
+      const mins = match[2] ? parseInt(match[2], 10) : 0;
+      const totalMinutes = hrs * 60 + mins;
+      return totalMinutes < 210; // < 3 hours 30 mins
+    }
+
+    function evaluateBedtimeInput(str) {
+      if (!str || !str.trim()) return null;
+      const clean = str.trim().toLowerCase();
+      // If user writes e.g. "11:15 pm" or "10:45" or "11:50pm" -> before midnight!
+      // If "12:15 am" or "1:00 am" -> after midnight!
+      const match = clean.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+      if (!match) return null;
+      const hr = parseInt(match[1], 10);
+      const ampm = match[3] || '';
+      if (ampm === 'am') {
+        return false; // 12:xx am or 1:xx am is after midnight
+      }
+      if (ampm === 'pm') {
+        return hr !== 12 && hr >= 6 && hr <= 11;
+      }
+      // If no am/pm specified: 7..11 is evening before midnight, 12 or 1..5 is after midnight
+      return hr >= 7 && hr <= 11;
+    }
+
+    // ==================== GET CURRENT ACTIVE WEEK ====================
+    function getCurrentWeek() {
+      if (!state.weeks[state.selectedWeekId]) {
+        const firstKey = Object.keys(state.weeks)[0];
+        state.selectedWeekId = firstKey;
+      }
+      return state.weeks[state.selectedWeekId];
+    }
+
+    // ==================== RENDER FUNCTIONS ====================
+    function renderAll() {
+      const week = getCurrentWeek();
+      const score = calculateWeekScore(week);
+
+      // Theme classes
+      if (state.stickyTheme) {
+        document.body.classList.add('sticky-theme');
+        document.getElementById('toggleStickyModeBtn').textContent = 'Sticky Note Style: On';
+      } else {
+        document.body.classList.remove('sticky-theme');
+        document.getElementById('toggleStickyModeBtn').textContent = 'Sticky Note Style: Off';
+      }
+
+      // Header selector
+      const weekSelector = document.getElementById('weekSelector');
+      weekSelector.innerHTML = '';
+      const sortedIds = Object.keys(state.weeks).sort();
+      sortedIds.forEach(id => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = state.weeks[id].label;
+        opt.className = 'bg-slate-900 text-slate-100';
+        if (id === state.selectedWeekId) opt.selected = true;
+        weekSelector.appendChild(opt);
+      });
+
+      // Header & Board scores
+      document.getElementById('headerScoreText').textContent = `${score.total} / 68`;
+      document.getElementById('dailyScoreSub').textContent = `${score.dailyPoints} / 56`;
+      document.getElementById('weeklyScoreSub').textContent = `${score.weeklyPoints} / 12`;
+      document.getElementById('boardTotalScore').textContent = `${score.total} / 68`;
+
+      // Week metadata
+      document.getElementById('weekDateBadge').textContent = week.label;
+      document.getElementById('weekNoteInput').value = week.note || '';
+      const statusPill = document.getElementById('weekStatusPill');
+      if (week.finalized) {
+        statusPill.textContent = 'Finalized Week';
+        statusPill.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium';
+      } else {
+        statusPill.textContent = 'In Progress';
+        statusPill.className = 'text-xs px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-medium';
+      }
+
+      renderWeeklyLeftColumn(week);
+      renderMatrixGrid(week, score);
+      renderNightlyView(week);
+      renderSummaryView(week, score);
+      renderHistoryView();
+      updateActiveTabUI();
+    }
+
+    function renderWeeklyLeftColumn(week) {
+      const w = week.weekly;
+
+      // 1. Three Sunday average inputs
+      const sleepInp = document.getElementById('avgSleepInput');
+      if (document.activeElement !== sleepInp) sleepInp.value = w.avgSleepText || '';
+      const sleepBtn = document.getElementById('avgSleepCheckBtn');
+      sleepBtn.innerHTML = w.avgSleepMet ? '✓' : '';
+      sleepBtn.className = w.avgSleepMet
+        ? 'w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center text-sm font-black transition'
+        : 'w-7 h-7 rounded-lg border border-slate-700 bg-slate-950 text-slate-500 hover:border-slate-500 flex items-center justify-center text-sm font-bold transition';
+
+      const bedInp = document.getElementById('avgBedtimeInput');
+      if (document.activeElement !== bedInp) bedInp.value = w.avgBedtimeText || '';
+      const bedBtn = document.getElementById('avgBedtimeCheckBtn');
+      bedBtn.innerHTML = w.avgBedtimeMet ? '✓' : '';
+      bedBtn.className = w.avgBedtimeMet
+        ? 'w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center text-sm font-black transition'
+        : 'w-7 h-7 rounded-lg border border-slate-700 bg-slate-950 text-slate-500 hover:border-slate-500 flex items-center justify-center text-sm font-bold transition';
+
+      const phoneInp = document.getElementById('avgPhoneInput');
+      if (document.activeElement !== phoneInp) phoneInp.value = w.avgPhoneText || '';
+      const phoneBtn = document.getElementById('avgPhoneCheckBtn');
+      phoneBtn.innerHTML = w.avgPhoneMet ? '✓' : '';
+      phoneBtn.className = w.avgPhoneMet
+        ? 'w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center text-sm font-black transition'
+        : 'w-7 h-7 rounded-lg border border-slate-700 bg-slate-950 text-slate-500 hover:border-slate-500 flex items-center justify-center text-sm font-bold transition';
+
+      // 2. Gym 4x slots
+      document.getElementById('gymSubStatus').textContent = `${w.gymCount || 0} / 4 sessions completed`;
+      const gymContainer = document.getElementById('gymSlotsContainer');
+      gymContainer.innerHTML = '';
+      for (let i = 1; i <= 4; i++) {
+        const active = (w.gymCount || 0) >= i;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = active
+          ? 'w-8 h-8 rounded-lg bg-amber-400 text-slate-950 font-black text-xs shadow-sm transition transform hover:scale-105'
+          : 'w-8 h-8 rounded-lg border border-slate-700 bg-slate-950 text-slate-400 hover:border-amber-400/50 font-semibold text-xs transition';
+        btn.textContent = active ? '✓' : i;
+        btn.title = `Set Gym count to ${i}`;
+        btn.addEventListener('click', () => {
+          w.gymCount = (w.gymCount === i) ? i - 1 : i;
+          saveState();
+          renderAll();
+        });
+        gymContainer.appendChild(btn);
+      }
+
+      // 2b. Focused workdays 4x slots
+      document.getElementById('workSubStatus').textContent = `${w.workCount || 0} / 4 days completed`;
+      const workContainer = document.getElementById('workSlotsContainer');
+      workContainer.innerHTML = '';
+      for (let i = 1; i <= 4; i++) {
+        const active = (w.workCount || 0) >= i;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = active
+          ? 'w-8 h-8 rounded-lg bg-sky-400 text-slate-950 font-black text-xs shadow-sm transition transform hover:scale-105'
+          : 'w-8 h-8 rounded-lg border border-slate-700 bg-slate-950 text-slate-400 hover:border-sky-400/50 font-semibold text-xs transition';
+        btn.textContent = active ? '✓' : i;
+        btn.title = `Set Focused Workdays count to ${i}`;
+        btn.addEventListener('click', () => {
+          w.workCount = (w.workCount === i) ? i - 1 : i;
+          saveState();
+          renderAll();
+        });
+        workContainer.appendChild(btn);
+      }
+
+      // 3. Meditate 2x slots
+      document.getElementById('meditateSubStatus').textContent = `${w.meditateCount || 0} / 2 sessions completed`;
+      const medContainer = document.getElementById('meditateSlotsContainer');
+      medContainer.innerHTML = '';
+      for (let i = 1; i <= 2; i++) {
+        const active = (w.meditateCount || 0) >= i;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = active
+          ? 'w-8 h-8 rounded-lg bg-purple-400 text-slate-950 font-black text-xs shadow-sm transition transform hover:scale-105'
+          : 'w-8 h-8 rounded-lg border border-slate-700 bg-slate-950 text-slate-400 hover:border-purple-400/50 font-semibold text-xs transition';
+        btn.textContent = active ? '✓' : i;
+        btn.title = `Set Meditation count to ${i}`;
+        btn.addEventListener('click', () => {
+          w.meditateCount = (w.meditateCount === i) ? i - 1 : i;
+          saveState();
+          renderAll();
+        });
+        medContainer.appendChild(btn);
+      }
+
+      // 3b. Ab workout 2x slots
+      document.getElementById('absSubStatus').textContent = `${w.absCount || 0} / 2 workouts completed`;
+      const absContainer = document.getElementById('absSlotsContainer');
+      absContainer.innerHTML = '';
+      for (let i = 1; i <= 2; i++) {
+        const active = (w.absCount || 0) >= i;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = active
+          ? 'w-8 h-8 rounded-lg bg-rose-400 text-slate-950 font-black text-xs shadow-sm transition transform hover:scale-105'
+          : 'w-8 h-8 rounded-lg border border-slate-700 bg-slate-950 text-slate-400 hover:border-rose-400/50 font-semibold text-xs transition';
+        btn.textContent = active ? '✓' : i;
+        btn.title = `Set Ab Workout count to ${i}`;
+        btn.addEventListener('click', () => {
+          w.absCount = (w.absCount === i) ? i - 1 : i;
+          saveState();
+          renderAll();
+        });
+        absContainer.appendChild(btn);
+      }
+
+      // 4. Single-check weekly goals
+      const singleList = document.getElementById('singleWeeklyList');
+      singleList.innerHTML = '';
+      SINGLE_WEEKLY_HABITS.forEach(item => {
+        const checked = !!w[item.id];
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = checked
+          ? 'flex items-center justify-between w-full p-2.5 rounded-lg border border-emerald-500/40 bg-emerald-500/10 text-left transition'
+          : 'flex items-center justify-between w-full p-2.5 rounded-lg border border-slate-800 bg-slate-900/80 hover:border-slate-700 text-left transition';
+        btn.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded ${checked ? 'bg-emerald-400 text-slate-950' : 'bg-slate-800 text-slate-300'}">${item.code}</span>
+            <span class="text-xs sm:text-sm font-medium ${checked ? 'text-emerald-200' : 'text-slate-200'}">${item.name}</span>
+          </div>
+          <span class="w-6 h-6 rounded-md flex items-center justify-center text-xs font-black ${checked ? 'bg-emerald-400 text-slate-950' : 'border border-slate-700 bg-slate-950 text-transparent'}">✓</span>
+        `;
+        btn.addEventListener('click', () => {
+          w[item.id] = !w[item.id];
+          saveState();
+          renderAll();
+        });
+        singleList.appendChild(btn);
+      });
+    }
+
+    function renderMatrixGrid(week, score) {
+      const headerRow = document.getElementById('matrixHeaderRow');
+      headerRow.innerHTML = `
+        <th class="py-3 px-3 font-semibold text-slate-300">Daily Goal</th>
+        ${DAYS.map((d, idx) => `
+          <th class="py-3 px-2 text-center font-bold ${idx === state.selectedDayIndex ? 'text-amber-400 bg-amber-400/5' : 'text-slate-300'}">
+            <button type="button" data-day-header="${idx}" class="w-full flex flex-col items-center hover:text-amber-300">
+              <span class="text-xs sm:text-sm font-extrabold">${d.short}</span>
+            </button>
+          </th>
+        `).join('')}
+        <th class="py-3 px-2.5 text-center font-semibold text-slate-400">Wk</th>
+      `;
+
+      headerRow.querySelectorAll('[data-day-header]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.selectedDayIndex = parseInt(btn.getAttribute('data-day-header'), 10);
+          renderAll();
+        });
+      });
+
+      const tbody = document.getElementById('matrixBodyRows');
+      tbody.innerHTML = '';
+
+      DAILY_HABITS.forEach(habit => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-900/40 transition';
+        const rowArr = week.daily[habit.id] || [false,false,false,false,false,false,false];
+        const rowSum = score.habitTotals[habit.id] || 0;
+
+        let cellsHtml = `
+          <td class="py-2.5 px-3">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded bg-slate-800 text-amber-300 font-mono text-xs font-bold flex items-center justify-center shrink-0">${habit.code}</span>
+              <span class="font-medium text-slate-200 text-xs sm:text-sm leading-tight">${habit.name}</span>
+            </div>
+          </td>
+        `;
+
+        rowArr.forEach((done, dayIdx) => {
+          cellsHtml += `
+            <td class="p-1.5 text-center ${dayIdx === state.selectedDayIndex ? 'bg-amber-400/5' : ''}">
+              <button
+                type="button"
+                data-habit="${habit.id}"
+                data-day="${dayIdx}"
+                aria-label="${habit.name} on ${DAYS[dayIdx].label}"
+                class="dot-cell mx-auto w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition ${
+                  done
+                    ? 'bg-amber-400/20 border border-amber-400/50 text-amber-300 shadow-sm'
+                    : 'bg-slate-900/60 border border-slate-800/80 text-slate-600 hover:border-slate-700'
+                }"
+              >
+                <span class="${done ? 'w-3.5 h-3.5 rounded-full bg-amber-400 block shadow' : 'w-1.5 h-1.5 rounded-full bg-slate-700 block'}"></span>
+              </button>
+            </td>
+          `;
+        });
+
+        cellsHtml += `
+          <td class="py-2.5 px-2.5 text-center font-mono text-xs font-bold ${rowSum === 7 ? 'text-emerald-400' : 'text-slate-400'}">
+            ${rowSum}/7
+          </td>
+        `;
+
+        tr.innerHTML = cellsHtml;
+        tbody.appendChild(tr);
+      });
+
+      tbody.querySelectorAll('button[data-habit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const hId = btn.getAttribute('data-habit');
+          const dIdx = parseInt(btn.getAttribute('data-day'), 10);
+          week.daily[hId][dIdx] = !week.daily[hId][dIdx];
+          saveState();
+          renderAll();
+        });
+      });
+
+      const footerRow = document.getElementById('matrixFooterRow');
+      footerRow.innerHTML = `
+        <td class="py-2.5 px-3 text-slate-400">Daily Total (out of 8)</td>
+        ${score.dayTotals.map((tot, idx) => `
+          <td class="py-2.5 px-2 text-center font-mono ${tot === 8 ? 'text-emerald-400 font-bold' : 'text-slate-300'} ${idx === state.selectedDayIndex ? 'bg-amber-400/5' : ''}">
+            ${tot}/8
+          </td>
+        `).join('')}
+        <td class="py-2.5 px-2.5 text-center font-mono font-extrabold text-amber-400">${score.dailyPoints}/56</td>
+      `;
+    }
+
+    function renderNightlyView(week) {
+      const daySelector = document.getElementById('nightlyDaySelector');
+      daySelector.innerHTML = '';
+      DAYS.forEach((d, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const isSel = idx === state.selectedDayIndex;
+        btn.className = isSel
+          ? 'px-2.5 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-bold text-xs transition'
+          : 'px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-100 text-xs font-medium transition';
+        btn.textContent = d.short;
+        btn.addEventListener('click', () => {
+          state.selectedDayIndex = idx;
+          renderAll();
+        });
+        daySelector.appendChild(btn);
+      });
+
+      const dObj = DAYS[state.selectedDayIndex];
+      let completedCount = 0;
+      DAILY_HABITS.forEach(h => {
+        if (week.daily[h.id][state.selectedDayIndex]) completedCount++;
+      });
+
+      document.getElementById('nightlySelectedDayLabel').textContent = `${dObj.label} Nightly Check-In`;
+      document.getElementById('nightlyDayScoreLabel').textContent = `${completedCount} / 8 accomplished`;
+      document.getElementById('nightlyProgressBar').style.width = `${(completedCount / 8) * 100}%`;
+
+      const container = document.getElementById('nightlyChecklistContainer');
+      container.innerHTML = '';
+      DAILY_HABITS.forEach(h => {
+        const done = !!week.daily[h.id][state.selectedDayIndex];
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = done
+          ? 'flex items-center justify-between p-3.5 rounded-xl border border-amber-400/50 bg-amber-400/10 text-left transition'
+          : 'flex items-center justify-between p-3.5 rounded-xl border border-slate-800 bg-slate-950/60 hover:border-slate-700 text-left transition';
+        card.innerHTML = `
+          <div class="pr-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded ${done ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'}">${h.code}</span>
+              <span class="text-sm font-semibold ${done ? 'text-amber-200' : 'text-slate-100'}">${h.name}</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">${h.desc}</p>
+          </div>
+          <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-amber-400 text-slate-950 font-black' : 'border border-slate-700 bg-slate-900'}">
+            ${done ? '●' : ''}
+          </div>
+        `;
+        card.addEventListener('click', () => {
+          week.daily[h.id][state.selectedDayIndex] = !week.daily[h.id][state.selectedDayIndex];
+          saveState();
+          renderAll();
+        });
+        container.appendChild(card);
+      });
+
+      // Quick weekly buttons inside Nightly check-in
+      const wQuick = document.getElementById('nightlyWeeklyQuickContainer');
+      wQuick.innerHTML = '';
+      const w = week.weekly;
+
+      const gymBtn = document.createElement('button');
+      gymBtn.type = 'button';
+      gymBtn.className = 'text-xs px-3 py-1.5 rounded-lg border border-amber-400/40 bg-amber-400/10 text-amber-300 font-semibold';
+      gymBtn.textContent = `+ Gym Session (${w.gymCount || 0}/4)`;
+      gymBtn.addEventListener('click', () => {
+        w.gymCount = ((w.gymCount || 0) + 1) % 5;
+        saveState('Updated Gym count');
+        renderAll();
+      });
+      wQuick.appendChild(gymBtn);
+
+      const workBtn = document.createElement('button');
+      workBtn.type = 'button';
+      workBtn.className = 'text-xs px-3 py-1.5 rounded-lg border border-sky-400/40 bg-sky-400/10 text-sky-300 font-semibold';
+      workBtn.textContent = `+ Focused Workday (${w.workCount || 0}/4)`;
+      workBtn.addEventListener('click', () => {
+        w.workCount = ((w.workCount || 0) + 1) % 5;
+        saveState('Updated Focused Workdays count');
+        renderAll();
+      });
+      wQuick.appendChild(workBtn);
+
+      const medBtn = document.createElement('button');
+      medBtn.type = 'button';
+      medBtn.className = 'text-xs px-3 py-1.5 rounded-lg border border-purple-400/40 bg-purple-400/10 text-purple-300 font-semibold';
+      medBtn.textContent = `+ Meditate (${w.meditateCount || 0}/2)`;
+      medBtn.addEventListener('click', () => {
+        w.meditateCount = ((w.meditateCount || 0) + 1) % 3;
+        saveState('Updated Meditation count');
+        renderAll();
+      });
+      wQuick.appendChild(medBtn);
+
+      const absBtn = document.createElement('button');
+      absBtn.type = 'button';
+      absBtn.className = 'text-xs px-3 py-1.5 rounded-lg border border-rose-400/40 bg-rose-400/10 text-rose-300 font-semibold';
+      absBtn.textContent = `+ Ab Workout (${w.absCount || 0}/2)`;
+      absBtn.addEventListener('click', () => {
+        w.absCount = ((w.absCount || 0) + 1) % 3;
+        saveState('Updated Ab Workout count');
+        renderAll();
+      });
+      wQuick.appendChild(absBtn);
+
+      SINGLE_WEEKLY_HABITS.slice(0, 3).forEach(item => {
+        const active = !!w[item.id];
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = active
+          ? 'text-xs px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold'
+          : 'text-xs px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300';
+        b.textContent = `${active ? '✓ ' : ''}${item.name}`;
+        b.addEventListener('click', () => {
+          w[item.id] = !w[item.id];
+          saveState();
+          renderAll();
+        });
+        wQuick.appendChild(b);
+      });
+    }
+
+    function renderSummaryView(week, score) {
+      document.getElementById('summaryWeekTitle').textContent = `${week.label} — Summary`;
+      const pct = Math.round((score.total / 68) * 100);
+      document.getElementById('sumFinalScore').textContent = `${score.total} / 68`;
+      document.getElementById('sumGradeLabel').textContent = `${pct}% weekly score`;
+      document.getElementById('sumDailyPoints').textContent = `${score.dailyPoints} / 56`;
+      document.getElementById('sumWeeklyPoints').textContent = `${score.weeklyPoints} / 12`;
+      document.getElementById('sumGymMedLabel').textContent = `Gym: ${week.weekly.gymCount || 0}/4 • Work: ${week.weekly.workCount || 0}/4 • Med: ${week.weekly.meditateCount || 0}/2 • Abs: ${week.weekly.absCount || 0}/2`;
+
+      // Sync the 3 average inputs in Summary tab
+      const sSleep = document.getElementById('sumSleepInput');
+      if (document.activeElement !== sSleep) sSleep.value = week.weekly.avgSleepText || '';
+      const sleepBadge = document.getElementById('sumSleepBadge');
+      sleepBadge.textContent = week.weekly.avgSleepMet ? 'PASS' : 'MISS';
+      sleepBadge.className = week.weekly.avgSleepMet ? 'text-xs px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold' : 'text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 font-bold';
+
+      const sBed = document.getElementById('sumBedtimeInput');
+      if (document.activeElement !== sBed) sBed.value = week.weekly.avgBedtimeText || '';
+      const bedBadge = document.getElementById('sumBedtimeBadge');
+      bedBadge.textContent = week.weekly.avgBedtimeMet ? 'PASS' : 'MISS';
+      bedBadge.className = week.weekly.avgBedtimeMet ? 'text-xs px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold' : 'text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 font-bold';
+
+      const sPhone = document.getElementById('sumPhoneInput');
+      if (document.activeElement !== sPhone) sPhone.value = week.weekly.avgPhoneText || '';
+      const phoneBadge = document.getElementById('sumPhoneBadge');
+      phoneBadge.textContent = week.weekly.avgPhoneMet ? 'PASS' : 'MISS';
+      phoneBadge.className = week.weekly.avgPhoneMet ? 'text-xs px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold' : 'text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 font-bold';
+
+      // Best day
+      let bestDayIdx = 0;
+      score.dayTotals.forEach((v, i) => {
+        if (v > score.dayTotals[bestDayIdx]) bestDayIdx = i;
+      });
+      document.getElementById('sumBestDayLabel').textContent = `Best day: ${DAYS[bestDayIdx].label} (${score.dayTotals[bestDayIdx]}/8)`;
+
+      // Top & focus habit
+      let sortedHabits = [...DAILY_HABITS].sort((a, b) => (score.habitTotals[b.id] || 0) - (score.habitTotals[a.id] || 0));
+      const topH = sortedHabits[0];
+      const lowH = sortedHabits[sortedHabits.length - 1];
+      document.getElementById('sumTopHabit').textContent = `${topH.name} (${score.habitTotals[topH.id]}/7)`;
+      document.getElementById('sumFocusHabit').textContent = `Focus next week: ${lowH.name} (${score.habitTotals[lowH.id]}/7)`;
+
+      // Daily bars
+      const barsEl = document.getElementById('summaryDailyBars');
+      barsEl.innerHTML = '';
+      DAILY_HABITS.forEach(h => {
+        const cnt = score.habitTotals[h.id] || 0;
+        const wPct = Math.round((cnt / 7) * 100);
+        const div = document.createElement('div');
+        div.className = 'space-y-1';
+        div.innerHTML = `
+          <div class="flex justify-between text-xs">
+            <span class="font-medium text-slate-200">${h.code} — ${h.name}</span>
+            <span class="font-mono font-bold ${cnt === 7 ? 'text-emerald-400' : 'text-slate-400'}">${cnt} / 7 days</span>
+          </div>
+          <div class="w-full h-2 bg-slate-900 rounded-full overflow-hidden">
+            <div class="h-full ${cnt >= 6 ? 'bg-emerald-400' : cnt >= 4 ? 'bg-amber-400' : 'bg-rose-400'}" style="width: ${wPct}%"></div>
+          </div>
+        `;
+        barsEl.appendChild(div);
+      });
+
+      // Weekly report list
+      const wListEl = document.getElementById('summaryWeeklyReportList');
+      const w = week.weekly;
+      const items = [
+        { label: `Go to gym 4 times (${w.gymCount || 0}/4)`, ok: (w.gymCount || 0) >= 4 },
+        { label: `Focused workdays 4 times (${w.workCount || 0}/4)`, ok: (w.workCount || 0) >= 4 },
+        { label: `Meditate twice (${w.meditateCount || 0}/2)`, ok: (w.meditateCount || 0) >= 2 },
+        { label: `Do ab workout twice (${w.absCount || 0}/2)`, ok: (w.absCount || 0) >= 2 },
+        { label: 'ASL (1 hr deep language learning)', ok: !!w.asl },
+        { label: 'Do yoga', ok: !!w.yoga },
+        { label: 'Do face masks', ok: !!w.facemask },
+        { label: "Don't use gay apps", ok: !!w.no_gay_apps },
+        { label: "Don't jerk off at all", ok: !!w.no_jerk_off },
+        { label: `Avg sleep > 7 hrs (${w.avgSleepText || 'not set'})`, ok: !!w.avgSleepMet },
+        { label: `Avg bedtime < 12:00 (${w.avgBedtimeText || 'not set'})`, ok: !!w.avgBedtimeMet },
+        { label: `Avg phone use < 3:30 (${w.avgPhoneText || 'not set'})`, ok: !!w.avgPhoneMet }
+      ];
+      wListEl.innerHTML = items.map(it => `
+        <div class="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-900/70 border border-slate-800/80 text-xs">
+          <span class="${it.ok ? 'text-slate-100 font-medium' : 'text-slate-400'}">${it.label}</span>
+          <span class="px-2 py-0.5 rounded font-bold ${it.ok ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-800 text-slate-500'}">${it.ok ? '✓ Accomplished' : 'Missed'}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderHistoryView() {
+      const sortedIds = Object.keys(state.weeks).sort();
+      const labels = [];
+      const totals = [];
+
+      const listEl = document.getElementById('historyCardsList');
+      listEl.innerHTML = '';
+
+      sortedIds.forEach(id => {
+        const wk = state.weeks[id];
+        const sc = calculateWeekScore(wk);
+        labels.push(wk.label.replace(' (Current Week)', ''));
+        totals.push(sc.total);
+
+        const card = document.createElement('div');
+        card.className = 'rounded-xl border border-slate-800 bg-slate-950/60 p-4 flex items-center justify-between gap-3';
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-sm text-slate-100">${wk.label}</span>
+              ${wk.note ? `<span class="text-xs px-2 py-0.5 rounded bg-amber-400/15 text-amber-300">${wk.note}</span>` : ''}
+            </div>
+            <div class="text-xs text-slate-400 mt-1">Daily: ${sc.dailyPoints}/56 • Weekly: ${sc.weeklyPoints}/12 • Sleep: ${wk.weekly.avgSleepText || '-'}</div>
+          </div>
+          <div class="text-right">
+            <div class="text-xl font-black text-amber-400">${sc.total}/68</div>
+            <button type="button" data-open-week="${id}" class="text-xs text-sky-400 hover:underline mt-0.5">Open Week →</button>
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+
+      listEl.querySelectorAll('[data-open-week]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.selectedWeekId = btn.getAttribute('data-open-week');
+          state.activeView = 'board';
+          saveState();
+          renderAll();
+        });
+      });
+
+      // Render Chart.js if visible
+      const canvas = document.getElementById('historyChartCanvas');
+      if (canvas && typeof Chart !== 'undefined') {
+        if (historyChartInstance) {
+          historyChartInstance.destroy();
+        }
+        historyChartInstance = new Chart(canvas.getContext('2d'), {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Weekly Score (out of 68)',
+              data: totals,
+              borderColor: '#fbbf24',
+              backgroundColor: 'rgba(251, 191, 36, 0.15)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 5,
+              pointBackgroundColor: '#fbbf24'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                min: 0,
+                max: 68,
+                grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                ticks: { color: '#94a3b8' }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { color: '#94a3b8' }
+              }
+            },
+            plugins: {
+              legend: { labels: { color: '#e2e8f0' } }
+            }
+          }
+        });
+      }
+    }
+
+    function updateActiveTabUI() {
+      const views = {
+        board: document.getElementById('viewBoard'),
+        nightly: document.getElementById('viewNightly'),
+        summary: document.getElementById('viewSummary'),
+        history: document.getElementById('viewHistory')
+      };
+      const tabs = {
+        board: document.getElementById('tabBoardBtn'),
+        nightly: document.getElementById('tabNightlyBtn'),
+        summary: document.getElementById('tabSummaryBtn'),
+        history: document.getElementById('tabHistoryBtn')
+      };
+
+      Object.keys(views).forEach(k => {
+        if (k === state.activeView) {
+          views[k].classList.remove('hidden');
+          tabs[k].className = 'view-tab px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 border-amber-400 text-amber-400 whitespace-nowrap';
+        } else {
+          views[k].classList.add('hidden');
+          tabs[k].className = 'view-tab px-4 py-2 text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 whitespace-nowrap';
+        }
+      });
+    }
+
+    // ==================== CREATE NEXT SUNDAY WEEK ====================
+    function createNextSundayWeek() {
+      const current = getCurrentWeek();
+      current.finalized = true;
+
+      // Parse start date and add 7 days
+      const baseDate = new Date(current.startDate + 'T12:00:00');
+      baseDate.setDate(baseDate.getDate() + 7);
+      const endDate = new Date(baseDate);
+      endDate.setDate(endDate.getDate() + 6);
+
+      const yyyy = baseDate.getFullYear();
+      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+      const dd = String(baseDate.getDate()).padStart(2, '0');
+      const newId = `${yyyy}-${mm}-${dd}`;
+
+      const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const newLabel = `${fmt(baseDate)} – ${fmt(endDate)}`;
+
+      if (!state.weeks[newId]) {
+        state.weeks[newId] = {
+          id: newId,
+          label: newLabel,
+          startDate: newId,
+          note: '',
+          finalized: false,
+          daily: createEmptyDailyGrid(),
+          weekly: {
+            gymCount: 0,
+            workCount: 0,
+            meditateCount: 0,
+            absCount: 0,
+            asl: false,
+            yoga: false,
+            facemask: false,
+            no_gay_apps: false,
+            no_jerk_off: false,
+            avgSleepText: '',
+            avgSleepMet: false,
+            avgBedtimeText: '',
+            avgBedtimeMet: false,
+            avgPhoneText: '',
+            avgPhoneMet: false
+          }
+        };
+      }
+      state.selectedWeekId = newId;
+      state.selectedDayIndex = 0; // Reset to Sunday
+      state.activeView = 'board';
+      saveState(`Finalized week & started ${newLabel}!`);
+      renderAll();
+    }
+
+    // ==================== EVENT LISTENERS ====================
+    function bindEvents() {
+      // View navigation tabs
+      document.getElementById('tabBoardBtn').addEventListener('click', () => {
+        state.activeView = 'board';
+        renderAll();
+      });
+      document.getElementById('tabNightlyBtn').addEventListener('click', () => {
+        state.activeView = 'nightly';
+        renderAll();
+      });
+      document.getElementById('tabSummaryBtn').addEventListener('click', () => {
+        state.activeView = 'summary';
+        renderAll();
+      });
+      document.getElementById('tabHistoryBtn').addEventListener('click', () => {
+        state.activeView = 'history';
+        renderAll();
+      });
+
+      document.getElementById('checkAllTodayBtn').addEventListener('click', () => {
+        state.activeView = 'nightly';
+        renderAll();
+      });
+      document.getElementById('backToBoardFromNightlyBtn').addEventListener('click', () => {
+        state.activeView = 'board';
+        renderAll();
+      });
+
+      // Week selector & prev/next buttons
+      document.getElementById('weekSelector').addEventListener('change', (e) => {
+        state.selectedWeekId = e.target.value;
+        saveState();
+        renderAll();
+      });
+
+      document.getElementById('prevWeekBtn').addEventListener('click', () => {
+        const keys = Object.keys(state.weeks).sort();
+        const idx = keys.indexOf(state.selectedWeekId);
+        if (idx > 0) {
+          state.selectedWeekId = keys[idx - 1];
+          saveState();
+          renderAll();
+        }
+      });
+
+      document.getElementById('nextWeekBtn').addEventListener('click', () => {
+        const keys = Object.keys(state.weeks).sort();
+        const idx = keys.indexOf(state.selectedWeekId);
+        if (idx >= 0 && idx < keys.length - 1) {
+          state.selectedWeekId = keys[idx + 1];
+          saveState();
+          renderAll();
+        }
+      });
+
+      document.getElementById('newWeekQuickBtn').addEventListener('click', createNextSundayWeek);
+      document.getElementById('finalizeAndStartNextWeekBtn').addEventListener('click', createNextSundayWeek);
+
+      // Sticky Note aesthetic toggle
+      document.getElementById('toggleStickyModeBtn').addEventListener('click', () => {
+        state.stickyTheme = !state.stickyTheme;
+        saveState();
+        renderAll();
+      });
+
+      // Weekly Note input
+      document.getElementById('weekNoteInput').addEventListener('input', (e) => {
+        const wk = getCurrentWeek();
+        wk.note = e.target.value;
+        saveState();
+      });
+
+      // 3 Average inputs on Board & Summary (auto-evaluate + manual toggle)
+      function handleSleepChange(val) {
+        const wk = getCurrentWeek();
+        wk.weekly.avgSleepText = val;
+        const auto = evaluateSleepInput(val);
+        if (auto !== null) wk.weekly.avgSleepMet = auto;
+        saveState();
+        renderAll();
+      }
+      function handleBedtimeChange(val) {
+        const wk = getCurrentWeek();
+        wk.weekly.avgBedtimeText = val;
+        const auto = evaluateBedtimeInput(val);
+        if (auto !== null) wk.weekly.avgBedtimeMet = auto;
+        saveState();
+        renderAll();
+      }
+      function handlePhoneChange(val) {
+        const wk = getCurrentWeek();
+        wk.weekly.avgPhoneText = val;
+        const auto = evaluatePhoneInput(val);
+        if (auto !== null) wk.weekly.avgPhoneMet = auto;
+        saveState();
+        renderAll();
+      }
+
+      document.getElementById('avgSleepInput').addEventListener('input', (e) => handleSleepChange(e.target.value));
+      document.getElementById('sumSleepInput').addEventListener('input', (e) => handleSleepChange(e.target.value));
+      document.getElementById('avgSleepCheckBtn').addEventListener('click', () => {
+        const wk = getCurrentWeek();
+        wk.weekly.avgSleepMet = !wk.weekly.avgSleepMet;
+        saveState();
+        renderAll();
+      });
+
+      document.getElementById('avgBedtimeInput').addEventListener('input', (e) => handleBedtimeChange(e.target.value));
+      document.getElementById('sumBedtimeInput').addEventListener('input', (e) => handleBedtimeChange(e.target.value));
+      document.getElementById('avgBedtimeCheckBtn').addEventListener('click', () => {
+        const wk = getCurrentWeek();
+        wk.weekly.avgBedtimeMet = !wk.weekly.avgBedtimeMet;
+        saveState();
+        renderAll();
+      });
+
+      document.getElementById('avgPhoneInput').addEventListener('input', (e) => handlePhoneChange(e.target.value));
+      document.getElementById('sumPhoneInput').addEventListener('input', (e) => handlePhoneChange(e.target.value));
+      document.getElementById('avgPhoneCheckBtn').addEventListener('click', () => {
+        const wk = getCurrentWeek();
+        wk.weekly.avgPhoneMet = !wk.weekly.avgPhoneMet;
+        saveState();
+        renderAll();
+      });
+
+      // Mark all 8 for today
+      document.getElementById('markAllDayBtn').addEventListener('click', () => {
+        const wk = getCurrentWeek();
+        DAILY_HABITS.forEach(h => {
+          wk.daily[h.id][state.selectedDayIndex] = true;
+        });
+        saveState(`Checked all 8 habits for ${DAYS[state.selectedDayIndex].label}!`);
+        renderAll();
+      });
+
+      // Photo reference drawer
+      document.getElementById('togglePhotoRefBtn').addEventListener('click', () => {
+        const drawer = document.getElementById('photoRefDrawer');
+        drawer.classList.toggle('hidden');
+      });
+      document.getElementById('loadFeb1WeekBtn').addEventListener('click', () => {
+        state.selectedWeekId = '2026-02-01';
+        saveState('Loaded Feb 1 (48/68) Sticky Note Week');
+        renderAll();
+      });
+
+      // Scoring rules modal
+      document.getElementById('openScoringModalBtn').addEventListener('click', () => {
+        document.getElementById('scoringModal').classList.remove('hidden');
+      });
+      document.getElementById('closeScoringModalBtn').addEventListener('click', () => {
+        document.getElementById('scoringModal').classList.add('hidden');
+      });
+      document.getElementById('saveScoringModalBtn').addEventListener('click', () => {
+        const selected = document.querySelector('input[name="scoringModeRadio"]:checked');
+        if (selected) {
+          state.scoringMode = selected.value;
+          saveState('Updated scoring formula');
+          renderAll();
+        }
+        document.getElementById('scoringModal').classList.add('hidden');
+      });
+
+      // Supabase & JSON Backup modal
+      document.getElementById('openSupabaseModalBtn').addEventListener('click', () => {
+        document.getElementById('sbUrlInput').value = state.supabaseUrl || '';
+        document.getElementById('sbKeyInput').value = state.supabaseKey || '';
+        document.getElementById('supabaseModal').classList.remove('hidden');
+      });
+      document.getElementById('closeSupabaseModalBtn').addEventListener('click', () => {
+        document.getElementById('supabaseModal').classList.add('hidden');
+      });
+
+      document.getElementById('saveSupabaseConfigBtn').addEventListener('click', async () => {
+        state.supabaseUrl = document.getElementById('sbUrlInput').value.trim();
+        state.supabaseKey = document.getElementById('sbKeyInput').value.trim();
+        saveState('Supabase settings saved');
+        const badge = document.getElementById('syncStatusBadge');
+        if (state.supabaseUrl && state.supabaseKey) {
+          badge.textContent = 'Supabase Ready';
+          badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+          try {
+            const wk = getCurrentWeek();
+            const sbHost = state.supabaseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            await fetch(`https://${sbHost}/rest/v1/habit_weeks`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': state.supabaseKey,
+                'Authorization': `Bearer ${state.supabaseKey}`,
+                'Prefer': 'resolution=merge-duplicates'
+              },
+              body: JSON.stringify({
+                week_id: wk.id,
+                start_date: wk.startDate,
+                payload: wk
+              })
+            });
+            showToast('Synced current week to Supabase!');
+          } catch (err) {
+            showToast('Saved config locally (connect online on GitHub Pages)');
+          }
+        }
+        document.getElementById('supabaseModal').classList.add('hidden');
+      });
+
+      // Export JSON
+      document.getElementById('exportJsonBtn').addEventListener('click', () => {
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(state, null, 2));
+        const a = document.createElement('a');
+        a.setAttribute('href', dataStr);
+        a.setAttribute('download', `habit-tracker-backup-${state.selectedWeekId}.json`);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        showToast('Downloaded JSON backup');
+      });
+
+      // Import JSON
+      document.getElementById('importJsonInput').addEventListener('change', (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          try {
+            const imported = JSON.parse(ev.target.result);
+            if (imported && imported.weeks) {
+              state = Object.assign(createInitialState(), imported);
+              saveState('Imported habit tracker backup!');
+              renderAll();
+              document.getElementById('supabaseModal').classList.add('hidden');
+            }
+          } catch (err) {
+            showToast('Invalid JSON file');
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    // Boot
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      bindEvents();
+      renderAll();
+      pullFromSupabase();
+    });
+  </script>
+</body>
+</html>
