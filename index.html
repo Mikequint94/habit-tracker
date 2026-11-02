@@ -4,7 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>68 Point Weekly Habit Tracker</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <meta name="theme-color" content="#020617" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Habits" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <!-- Prebuilt Tailwind CSS. If you add new Tailwind classes, run `npm run build:css`. -->
+  <link rel="stylesheet" href="tailwind.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -110,8 +119,8 @@
             <div class="flex items-center gap-2.5 flex-wrap">
               <span id="weekDateBadge" class="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-bold text-sm tracking-tight">Nov 1 – Nov 7</span>
               <span id="weekStatusPill" class="text-xs px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-medium">Active Week</span>
-              <button id="newWeekQuickBtn" type="button" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
-                + New Week
+              <button id="newWeekQuickBtn" type="button" title="Jump to the current week (creates it if needed)" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                This Week
               </button>
             </div>
             <div class="flex items-center gap-2 pt-1">
@@ -315,7 +324,7 @@
                   Switch to Feb 1 Week in App
                 </button>
               </div>
-              <img src="data:image/jpeg;base64,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" alt="Original sticky note habit tracker" class="max-h-72 rounded-lg border border-slate-700 mx-auto object-contain" />
+              <img src="sticky-note-feb1.jpg" loading="lazy" alt="Original sticky note habit tracker" class="max-h-72 rounded-lg border border-slate-700 mx-auto object-contain" />
             </div>
           </div>
 
@@ -487,7 +496,7 @@
       </div>
       <div class="text-xs text-slate-300 space-y-3 leading-relaxed">
         <p>Your daily grid has <strong>8 daily habits × 7 days = 56 points</strong>, and your <strong>12 weekly goals = 12 points</strong> (1 point each) for a total of <strong>68 points</strong>.</p>
-        <p>Choose how you want the <strong>12 weekly points</strong> calculated:</p>
+        <p>Choose how you want the <strong>12 weekly points</strong> calculated. This applies to in-progress weeks; finalized weeks keep the formula they were finalized with.</p>
         <div class="space-y-2">
           <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-800 bg-slate-950/60 cursor-pointer">
             <input type="radio" name="scoringModeRadio" value="weighted_bonus" class="mt-1" checked />
@@ -604,15 +613,105 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       return grid;
     }
 
+    function createEmptyWeekly() {
+      return {
+        gymCount: 0,
+        workCount: 0,
+        meditateCount: 0,
+        absCount: 0,
+        asl: false,
+        yoga: false,
+        facemask: false,
+        no_gay_apps: false,
+        no_jerk_off: false,
+        avgSleepText: '',
+        avgSleepMet: false,
+        avgBedtimeText: '',
+        avgBedtimeMet: false,
+        avgPhoneText: '',
+        avgPhoneMet: false
+      };
+    }
+
+    // ==================== DATE HELPERS (weeks run Sun–Sat, local time) ====================
+    // Check-ins made before this hour count toward the previous day (e.g. logging at 12:40am).
+    const DAY_ROLLOVER_HOUR = 4;
+
+    function toIsoDate(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function parseIsoDate(id) {
+      return new Date(id + 'T12:00:00');
+    }
+
+    function addDays(id, n) {
+      const d = parseIsoDate(id);
+      d.setDate(d.getDate() + n);
+      return toIsoDate(d);
+    }
+
+    // The "habit day" right now: before DAY_ROLLOVER_HOUR still counts as yesterday.
+    function habitToday() {
+      const now = new Date();
+      if (now.getHours() < DAY_ROLLOVER_HOUR) now.setDate(now.getDate() - 1);
+      return now;
+    }
+
+    function weekIdFor(date) {
+      const d = new Date(date);
+      d.setHours(12, 0, 0, 0);
+      d.setDate(d.getDate() - d.getDay()); // back to Sunday
+      return toIsoDate(d);
+    }
+
+    function weekLabelFor(id) {
+      const start = parseIsoDate(id);
+      const end = parseIsoDate(addDays(id, 6));
+      const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return `${fmt(start)} – ${fmt(end)}`;
+    }
+
+    function createWeek(id) {
+      return {
+        id,
+        label: weekLabelFor(id),
+        startDate: id,
+        note: '',
+        finalized: false,
+        daily: createEmptyDailyGrid(),
+        weekly: createEmptyWeekly()
+      };
+    }
+
+    // Make sure a week exists in state (creating it if needed) and return it.
+    // A freshly created (empty) week is stamped as "oldest possible" and is not treated as
+    // an edit, so a real copy of the same week from another device always wins the merge.
+    const EPOCH_ISO = new Date(0).toISOString();
+    function ensureWeek(id) {
+      if (!state.weeks[id]) {
+        const wk = createWeek(id);
+        wk.updatedAt = EPOCH_ISO;
+        state.weeks[id] = wk;
+        weekSnapshots[id] = weekContent(wk);
+        markPending(id); // upload it if the cloud doesn't have it yet (after the first pull)
+      }
+      return state.weeks[id];
+    }
+
     function createInitialState() {
       return {
         activeView: 'board',
         selectedDayIndex: 0, // Sunday default
         stickyTheme: false,
         scoringMode: 'weighted_bonus',
-        selectedWeekId: '2026-11-01',
+        selectedWeekId: null, // set to the current week on boot
         supabaseUrl: '',
         supabaseKey: '',
+        pendingSync: [], // week ids with local edits not yet confirmed by Supabase
         weeks: {
           '2026-02-01': {
             id: '2026-02-01',
@@ -648,32 +747,8 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
               avgPhoneText: '',
               avgPhoneMet: false  // 5 weekly checks + 43 daily = 48/68!
             }
-          },
-          '2026-11-01': {
-            id: '2026-11-01',
-            label: 'Nov 1 – Nov 7 (Current Week)',
-            startDate: '2026-11-01',
-            note: 'Consistency week',
-            finalized: false,
-            daily: createEmptyDailyGrid(),
-            weekly: {
-              gymCount: 0,
-              workCount: 0,
-              meditateCount: 0,
-              absCount: 0,
-              asl: false,
-              yoga: false,
-              facemask: false,
-              no_gay_apps: false,
-              no_jerk_off: false,
-              avgSleepText: '',
-              avgSleepMet: false,
-              avgBedtimeText: '',
-              avgBedtimeMet: false,
-              avgPhoneText: '',
-              avgPhoneMet: false
-            }
           }
+          // The current week is created automatically on boot (see ensureWeek).
         }
       };
     }
@@ -681,7 +756,68 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
     let state = createInitialState();
     let historyChartInstance = null;
 
+    // ==================== WEEK NORMALIZATION ====================
+    // Finalized weeks keep the scoring formula they were finalized under, so changing
+    // the formula later doesn't rewrite history. Older finalized weeks get the current one.
+    function normalizeWeek(wk) {
+      if (!wk) return wk;
+      if (!wk.daily) wk.daily = createEmptyDailyGrid();
+      DAILY_HABITS.forEach(h => {
+        if (!Array.isArray(wk.daily[h.id])) wk.daily[h.id] = [false, false, false, false, false, false, false];
+      });
+      wk.weekly = Object.assign(createEmptyWeekly(), wk.weekly || {});
+      if (wk.finalized && !wk.scoringMode) wk.scoringMode = state.scoringMode;
+      return wk;
+    }
+
+    // ==================== CHANGE TRACKING ====================
+    // We remember a snapshot of each week's content. On save, any week whose content
+    // differs from its snapshot gets a fresh `updatedAt` and is queued for upload.
+    // Only changed weeks are pushed, and merges compare `updatedAt` per week.
+    let weekSnapshots = {};
+    // Uploads wait until one successful pull has merged remote data, so a stale or
+    // freshly-created local week can never overwrite newer cloud data on startup.
+    let initialPullDone = false;
+
+    function weekContent(wk) {
+      const { updatedAt, ...rest } = wk;
+      return JSON.stringify(rest);
+    }
+
+    function snapshotAllWeeks() {
+      weekSnapshots = {};
+      Object.values(state.weeks).forEach(wk => { weekSnapshots[wk.id] = weekContent(wk); });
+    }
+
+    function markPending(id) {
+      if (!state.pendingSync.includes(id)) state.pendingSync.push(id);
+    }
+
+    function stampChangedWeeks() {
+      const now = new Date().toISOString();
+      Object.values(state.weeks).forEach(wk => {
+        const content = weekContent(wk);
+        if (weekSnapshots[wk.id] !== content) {
+          wk.updatedAt = now;
+          weekSnapshots[wk.id] = content;
+          markPending(wk.id);
+        }
+      });
+    }
+
+    function weekTime(wk) {
+      return (wk && Date.parse(wk.updatedAt)) || 0;
+    }
+
     // ==================== SAFELY LOAD / SAVE STATE ====================
+    function writeLocal() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        // Ignore storage errors inside restricted iframe
+      }
+    }
+
     function loadState() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -694,89 +830,147 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       } catch (e) {
         // Fallback to in-memory state if sandbox blocks localStorage
       }
+      if (!Array.isArray(state.pendingSync)) state.pendingSync = [];
+      Object.values(state.weeks).forEach(normalizeWeek);
+      snapshotAllWeeks();
     }
 
     function saveState(toastMsg) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {
-        // Ignore storage errors inside restricted iframe
-      }
+      stampChangedWeeks();
+      writeLocal();
       if (toastMsg) {
         showToast(toastMsg);
       }
       scheduleSupabasePush();
     }
 
-    async function pullFromSupabase() {
-      if (!state.supabaseUrl || !state.supabaseKey) return;
+    // ==================== SUPABASE SYNC ====================
+    const BADGE_BASE = 'text-[11px] px-2 py-0.5 rounded-full border ';
+    function setSyncBadge(kind, text) {
       const badge = document.getElementById('syncStatusBadge');
+      if (!badge) return;
+      const styles = {
+        ok: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+        busy: 'bg-slate-800 text-slate-300 border-slate-700',
+        local: 'bg-slate-800 text-slate-300 border-slate-700',
+        error: 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+      };
+      badge.textContent = text;
+      badge.className = BADGE_BASE + (styles[kind] || styles.local);
+    }
+
+    function hasSupabase() {
+      return !!(state.supabaseUrl && state.supabaseKey);
+    }
+
+    function supabaseEndpoint(query) {
+      const sbHost = state.supabaseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      return `https://${sbHost}/rest/v1/habit_weeks${query}`;
+    }
+
+    function supabaseHeaders(extra) {
+      return Object.assign({
+        'apikey': state.supabaseKey,
+        'Authorization': `Bearer ${state.supabaseKey}`
+      }, extra || {});
+    }
+
+    // Pull every remote week and merge: for each week, whichever side has the newer
+    // `updatedAt` wins. Local weeks that are newer (or missing remotely) get queued for upload.
+    async function pullFromSupabase() {
+      if (!hasSupabase()) return;
+      setSyncBadge('busy', 'Syncing...');
       try {
-        if (badge) badge.textContent = 'Syncing...';
-        const sbHost = state.supabaseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
-        const res = await fetch(`https://${sbHost}/rest/v1/habit_weeks?select=*`, {
-          method: 'GET',
-          headers: {
-            'apikey': state.supabaseKey,
-            'Authorization': `Bearer ${state.supabaseKey}`
+        const res = await fetch(supabaseEndpoint('?select=*'), { method: 'GET', headers: supabaseHeaders() });
+        if (!res.ok) throw new Error(`Supabase fetch error ${res.status}`);
+        const rows = await res.json();
+        const remoteIds = new Set();
+        let changedLocal = false;
+
+        (Array.isArray(rows) ? rows : []).forEach(r => {
+          if (!r.week_id || !r.payload) return;
+          remoteIds.add(r.week_id);
+          const remote = r.payload;
+          if (!remote.updatedAt && r.updated_at) remote.updatedAt = r.updated_at;
+          const local = state.weeks[r.week_id];
+          const remoteT = weekTime(remote);
+          const localT = weekTime(local);
+
+          if (!local || remoteT > localT) {
+            state.weeks[r.week_id] = normalizeWeek(remote);
+            weekSnapshots[r.week_id] = weekContent(state.weeks[r.week_id]);
+            state.pendingSync = state.pendingSync.filter(id => id !== r.week_id);
+            changedLocal = true;
+          } else if (localT > remoteT) {
+            markPending(r.week_id);
           }
         });
-        if (!res.ok) throw new Error('Supabase fetch error');
-        const rows = await res.json();
-        if (Array.isArray(rows) && rows.length > 0) {
-          rows.forEach(r => {
-            if (r.week_id && r.payload) {
-              state.weeks[r.week_id] = r.payload;
-            }
-          });
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-          } catch (e) {}
-          renderAll();
-        }
-        if (badge) {
-          badge.textContent = '☁️ Supabase Synced';
-          badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+
+        Object.keys(state.weeks).forEach(id => {
+          if (!remoteIds.has(id)) markPending(id);
+        });
+
+        writeLocal();
+        if (changedLocal) renderAll();
+        initialPullDone = true;
+
+        if (state.pendingSync.length > 0) {
+          await pushPendingToSupabase();
+        } else {
+          setSyncBadge('ok', '☁️ Supabase Synced');
         }
       } catch (err) {
-        if (badge) {
-          badge.textContent = 'Local Saved (Offline)';
-        }
+        console.error('Supabase pull failed:', err);
+        setSyncBadge('error', '⚠ Sync failed — saved locally');
+      }
+    }
+
+    async function pushPendingToSupabase() {
+      if (!hasSupabase() || !initialPullDone || state.pendingSync.length === 0) return;
+      // Remember exactly what we sent so edits made mid-request stay queued.
+      const sent = state.pendingSync
+        .map(id => state.weeks[id])
+        .filter(Boolean)
+        .map(wk => ({ id: wk.id, updatedAt: wk.updatedAt, row: {
+          week_id: wk.id,
+          start_date: wk.startDate,
+          payload: wk,
+          updated_at: wk.updatedAt || EPOCH_ISO
+        } }));
+      if (sent.length === 0) {
+        state.pendingSync = [];
+        writeLocal();
+        return;
+      }
+
+      setSyncBadge('busy', 'Saving to cloud...');
+      try {
+        const res = await fetch(supabaseEndpoint('?on_conflict=week_id'), {
+          method: 'POST',
+          headers: supabaseHeaders({
+            'Content-Type': 'application/json',
+            'Prefer': 'resolution=merge-duplicates'
+          }),
+          body: JSON.stringify(sent.map(s => s.row))
+        });
+        if (!res.ok) throw new Error(`Supabase push error ${res.status}: ${await res.text()}`);
+        state.pendingSync = state.pendingSync.filter(id => {
+          const s = sent.find(x => x.id === id);
+          return !s || (state.weeks[id] && state.weeks[id].updatedAt !== s.updatedAt);
+        });
+        writeLocal();
+        setSyncBadge(state.pendingSync.length ? 'busy' : 'ok', state.pendingSync.length ? 'Saving to cloud...' : '☁️ Supabase Synced');
+        if (state.pendingSync.length) scheduleSupabasePush();
+      } catch (e) {
+        console.error('Supabase push failed:', e);
+        setSyncBadge('error', '⚠ Sync failed — saved locally');
       }
     }
 
     function scheduleSupabasePush() {
-      if (!state.supabaseUrl || !state.supabaseKey) return;
+      if (!hasSupabase() || !initialPullDone || state.pendingSync.length === 0) return;
       clearTimeout(window.__sbPushTimer);
-      window.__sbPushTimer = setTimeout(async () => {
-        const badge = document.getElementById('syncStatusBadge');
-        try {
-          if (badge) badge.textContent = 'Saving to cloud...';
-          const sbHost = state.supabaseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
-          const rows = Object.values(state.weeks).map(wk => ({
-            week_id: wk.id,
-            start_date: wk.startDate,
-            payload: wk,
-            updated_at: new Date().toISOString()
-          }));
-          const res = await fetch(`https://${sbHost}/rest/v1/habit_weeks?on_conflict=week_id`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': state.supabaseKey,
-              'Authorization': `Bearer ${state.supabaseKey}`,
-              'Prefer': 'resolution=merge-duplicates'
-            },
-            body: JSON.stringify(rows)
-          });
-          if (res.ok && badge) {
-            badge.textContent = '☁️ Supabase Synced';
-            badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-          }
-        } catch (e) {
-          if (badge) badge.textContent = 'Local Saved';
-        }
-      }, 450);
+      window.__sbPushTimer = setTimeout(pushPendingToSupabase, 450);
     }
 
     function showToast(msg) {
@@ -812,7 +1006,9 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       const w = week.weekly || {};
       let weeklyPoints = 0;
 
-      if (state.scoringMode === 'per_session_cap') {
+      // Finalized weeks are frozen to the formula they were finalized under.
+      const mode = (week.finalized && week.scoringMode) ? week.scoringMode : state.scoringMode;
+      if (mode === 'per_session_cap') {
         weeklyPoints += Math.min(4, w.gymCount || 0);
         weeklyPoints += Math.min(4, w.workCount || 0);
         weeklyPoints += Math.min(2, w.meditateCount || 0);
@@ -853,52 +1049,62 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
     }
 
     // ==================== AUTO-EVALUATE SUNDAY AVERAGES ====================
+    // Parse a duration into minutes. Accepts "7:28", "7.5", "7.5h", "7h 28m", "7 hrs", "45m".
+    // Returns null if the text isn't a recognizable duration (the checkbox is then left alone).
+    function parseDurationMinutes(str) {
+      if (!str) return null;
+      const s = str.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (!s) return null;
+      const H = '(?:h|hr|hrs|hour|hours)';
+      const M = '(?:m|min|mins|minute|minutes)';
+
+      let m = s.match(new RegExp(`^(\\d{1,2}):(\\d{2})(?: ?${H})?$`));
+      if (m) {
+        const mins = parseInt(m[2], 10);
+        return mins < 60 ? parseInt(m[1], 10) * 60 + mins : null;
+      }
+      m = s.match(new RegExp(`^(\\d+(?:\\.\\d+)?|\\.\\d+) ?${H}?$`));
+      if (m) return Math.round(parseFloat(m[1]) * 60);
+      m = s.match(new RegExp(`^(?:(\\d+) ?${H})? ?(?:(\\d+) ?${M})?$`));
+      if (m && (m[1] || m[2])) return parseInt(m[1] || '0', 10) * 60 + parseInt(m[2] || '0', 10);
+      return null;
+    }
+
     function evaluateSleepInput(str) {
-      if (!str || !str.trim()) return null;
-      const clean = str.trim();
-      const match = clean.match(/^(\d+)(?::(\d+))?/);
-      if (!match) return null;
-      const hrs = parseInt(match[1], 10);
-      const mins = match[2] ? parseInt(match[2], 10) : 0;
-      const totalMinutes = hrs * 60 + mins;
-      return totalMinutes >= 420; // >= 7 hours
+      const mins = parseDurationMinutes(str);
+      return mins === null ? null : mins >= 420; // >= 7 hours
     }
 
     function evaluatePhoneInput(str) {
-      if (!str || !str.trim()) return null;
-      const clean = str.trim();
-      const match = clean.match(/^(\d+)(?::(\d+))?/);
-      if (!match) return null;
-      const hrs = parseInt(match[1], 10);
-      const mins = match[2] ? parseInt(match[2], 10) : 0;
-      const totalMinutes = hrs * 60 + mins;
-      return totalMinutes < 210; // < 3 hours 30 mins
+      const mins = parseDurationMinutes(str);
+      return mins === null ? null : mins < 210; // < 3 hours 30 mins
     }
 
+    // Bedtime before midnight? Accepts "11:15 pm", "11.15pm", "10:45", "23:15", "12:30 am".
     function evaluateBedtimeInput(str) {
       if (!str || !str.trim()) return null;
-      const clean = str.trim().toLowerCase();
-      // If user writes e.g. "11:15 pm" or "10:45" or "11:50pm" -> before midnight!
-      // If "12:15 am" or "1:00 am" -> after midnight!
-      const match = clean.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+      const clean = str.trim().toLowerCase().replace(/\s+/g, ' ');
+      const match = clean.match(/^(\d{1,2})(?:[:.](\d{2}))? ?(a\.?m?\.?|p\.?m?\.?)?$/);
       if (!match) return null;
       const hr = parseInt(match[1], 10);
-      const ampm = match[3] || '';
-      if (ampm === 'am') {
-        return false; // 12:xx am or 1:xx am is after midnight
+      const mins = match[2] ? parseInt(match[2], 10) : 0;
+      if (mins >= 60) return null;
+      const ampm = match[3] ? match[3][0] : '';
+      if (ampm) {
+        if (hr < 1 || hr > 12) return null;
+        if (ampm === 'a') return false; // any am time is at/after midnight
+        return hr >= 6 && hr <= 11;     // 6pm–11:59pm (12pm = noon, not a bedtime)
       }
-      if (ampm === 'pm') {
-        return hr !== 12 && hr >= 6 && hr <= 11;
-      }
-      // If no am/pm specified: 7..11 is evening before midnight, 12 or 1..5 is after midnight
+      if (hr > 23) return null;
+      if (hr >= 13) return true;        // 24-hour evening, e.g. 23:15
+      // No am/pm: 7–11 read as evening; 12 and 0–6 read as after midnight
       return hr >= 7 && hr <= 11;
     }
 
     // ==================== GET CURRENT ACTIVE WEEK ====================
     function getCurrentWeek() {
       if (!state.weeks[state.selectedWeekId]) {
-        const firstKey = Object.keys(state.weeks)[0];
-        state.selectedWeekId = firstKey;
+        selectToday();
       }
       return state.weeks[state.selectedWeekId];
     }
@@ -1506,56 +1712,45 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       });
     }
 
-    // ==================== CREATE NEXT SUNDAY WEEK ====================
-    function createNextSundayWeek() {
-      const current = getCurrentWeek();
-      current.finalized = true;
+    // ==================== WEEK NAVIGATION ====================
+    // Select the week containing today (creating it if needed) and today's day column.
+    function selectToday() {
+      const today = habitToday();
+      const id = weekIdFor(today);
+      ensureWeek(id);
+      state.selectedWeekId = id;
+      state.selectedDayIndex = today.getDay();
+    }
 
-      // Parse start date and add 7 days
-      const baseDate = new Date(current.startDate + 'T12:00:00');
-      baseDate.setDate(baseDate.getDate() + 7);
-      const endDate = new Date(baseDate);
-      endDate.setDate(endDate.getDate() + 6);
-
-      const yyyy = baseDate.getFullYear();
-      const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(baseDate.getDate()).padStart(2, '0');
-      const newId = `${yyyy}-${mm}-${dd}`;
-
-      const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      const newLabel = `${fmt(baseDate)} – ${fmt(endDate)}`;
-
-      if (!state.weeks[newId]) {
-        state.weeks[newId] = {
-          id: newId,
-          label: newLabel,
-          startDate: newId,
-          note: '',
-          finalized: false,
-          daily: createEmptyDailyGrid(),
-          weekly: {
-            gymCount: 0,
-            workCount: 0,
-            meditateCount: 0,
-            absCount: 0,
-            asl: false,
-            yoga: false,
-            facemask: false,
-            no_gay_apps: false,
-            no_jerk_off: false,
-            avgSleepText: '',
-            avgSleepMet: false,
-            avgBedtimeText: '',
-            avgBedtimeMet: false,
-            avgPhoneText: '',
-            avgPhoneMet: false
-          }
-        };
-      }
-      state.selectedWeekId = newId;
-      state.selectedDayIndex = 0; // Reset to Sunday
+    // "This Week" button: jump to (or create) the current week. Finalizes nothing.
+    function goToThisWeek() {
+      selectToday();
       state.activeView = 'board';
-      saveState(`Finalized week & started ${newLabel}!`);
+      saveState(`Showing this week: ${state.weeks[state.selectedWeekId].label}`);
+      renderAll();
+    }
+
+    // Finalize the week being viewed, then move on to whichever is later:
+    // the week right after it, or the current week (so finalizing an old week
+    // doesn't strand you in the past).
+    function finalizeAndAdvance() {
+      const current = getCurrentWeek();
+      const justFinalized = !current.finalized;
+      if (justFinalized) {
+        if (!confirm(`Finalize ${current.label} at ${calculateWeekScore(current).total}/68?`)) return;
+        current.finalized = true;
+        current.scoringMode = state.scoringMode;
+      }
+
+      const nextId = addDays(current.id, 7);
+      const thisWeekId = weekIdFor(habitToday());
+      const targetId = nextId > thisWeekId ? nextId : thisWeekId;
+      const target = ensureWeek(targetId);
+
+      state.selectedWeekId = targetId;
+      state.selectedDayIndex = targetId === thisWeekId ? habitToday().getDay() : 0;
+      state.activeView = 'board';
+      saveState(`${justFinalized ? 'Finalized week — now on' : 'Already finalized — now on'} ${target.label}`);
       renderAll();
     }
 
@@ -1615,8 +1810,8 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
         }
       });
 
-      document.getElementById('newWeekQuickBtn').addEventListener('click', createNextSundayWeek);
-      document.getElementById('finalizeAndStartNextWeekBtn').addEventListener('click', createNextSundayWeek);
+      document.getElementById('newWeekQuickBtn').addEventListener('click', goToThisWeek);
+      document.getElementById('finalizeAndStartNextWeekBtn').addEventListener('click', finalizeAndAdvance);
 
       // Sticky Note aesthetic toggle
       document.getElementById('toggleStickyModeBtn').addEventListener('click', () => {
@@ -1708,6 +1903,10 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
 
       // Scoring rules modal
       document.getElementById('openScoringModalBtn').addEventListener('click', () => {
+        // Reflect the saved mode so clicking "Done" doesn't silently revert it.
+        document.querySelectorAll('input[name="scoringModeRadio"]').forEach(r => {
+          r.checked = r.value === state.scoringMode;
+        });
         document.getElementById('scoringModal').classList.remove('hidden');
       });
       document.getElementById('closeScoringModalBtn').addEventListener('click', () => {
@@ -1737,33 +1936,13 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
         state.supabaseUrl = document.getElementById('sbUrlInput').value.trim();
         state.supabaseKey = document.getElementById('sbKeyInput').value.trim();
         saveState('Supabase settings saved');
-        const badge = document.getElementById('syncStatusBadge');
-        if (state.supabaseUrl && state.supabaseKey) {
-          badge.textContent = 'Supabase Ready';
-          badge.className = 'text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-          try {
-            const wk = getCurrentWeek();
-            const sbHost = state.supabaseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
-            await fetch(`https://${sbHost}/rest/v1/habit_weeks`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'apikey': state.supabaseKey,
-                'Authorization': `Bearer ${state.supabaseKey}`,
-                'Prefer': 'resolution=merge-duplicates'
-              },
-              body: JSON.stringify({
-                week_id: wk.id,
-                start_date: wk.startDate,
-                payload: wk
-              })
-            });
-            showToast('Synced current week to Supabase!');
-          } catch (err) {
-            showToast('Saved config locally (connect online on GitHub Pages)');
-          }
-        }
         document.getElementById('supabaseModal').classList.add('hidden');
+        if (hasSupabase()) {
+          // Full two-way merge: newer copy of each week wins, local-only weeks get uploaded.
+          await pullFromSupabase();
+        } else {
+          setSyncBadge('local', 'Local Saved');
+        }
       });
 
       // Export JSON
@@ -1788,7 +1967,10 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
             const imported = JSON.parse(ev.target.result);
             if (imported && imported.weeks) {
               state = Object.assign(createInitialState(), imported);
-              saveState('Imported habit tracker backup!');
+              if (!Array.isArray(state.pendingSync)) state.pendingSync = [];
+              Object.values(state.weeks).forEach(normalizeWeek);
+              if (!state.weeks[state.selectedWeekId]) selectToday();
+              saveState('Imported habit tracker backup!'); // changed weeks get stamped & queued for sync
               renderAll();
               document.getElementById('supabaseModal').classList.add('hidden');
             }
@@ -1803,10 +1985,25 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
     // Boot
     window.addEventListener('DOMContentLoaded', () => {
       loadState();
+      selectToday(); // always open on today's week & day
+      saveState();   // persists a newly created week (and queues it for sync)
       bindEvents();
       renderAll();
       pullFromSupabase();
     });
+
+    // Retry sync when the connection comes back or the app is reopened from the background.
+    window.addEventListener('online', () => pullFromSupabase());
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') pullFromSupabase();
+    });
+
+    // Installable / offline support (requires https or localhost, e.g. GitHub Pages).
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(err => console.warn('Service worker registration failed:', err));
+      });
+    }
   </script>
 </body>
 </html>
