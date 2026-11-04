@@ -148,8 +148,20 @@
           </div>
         </div>
 
+        <!-- Shown instead of the grid for imported summary-only weeks (total + averages, no daily detail) -->
+        <div id="boardSummaryNotice" class="hidden pt-5">
+          <div class="rounded-xl border border-sky-500/30 bg-sky-500/5 p-4 space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold">Summary week</span>
+              <span class="text-sm font-semibold text-slate-100">Imported from your records</span>
+            </div>
+            <p class="text-xs text-slate-400">Only the weekly total and averages were recorded for this week, so there's no daily grid to show.</p>
+            <div id="boardSummaryStats" class="text-xs text-slate-300"></div>
+          </div>
+        </div>
+
         <!-- Two-Column Sticky-Note Layout: Left = Weekly Goals & Averages, Right = 7x8 Daily Dot Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-5">
+        <div id="boardDetailGrid" class="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-5">
 
           <!-- LEFT COLUMN: Weekly Goals (12 Points Total) -->
           <div class="lg:col-span-5 space-y-5">
@@ -334,7 +346,11 @@
 
     <!-- ==================== VIEW 2: NIGHTLY BEDTIME CHECK-IN ==================== -->
     <section id="viewNightly" class="hidden space-y-6">
-      <div class="max-w-2xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 shadow-xl space-y-5">
+      <div id="nightlySummaryNotice" class="hidden max-w-2xl mx-auto rounded-2xl border border-sky-500/30 bg-sky-500/5 p-5 space-y-3">
+        <p class="text-sm text-slate-200">This is an imported summary week, so there's nothing to check in for.</p>
+        <button id="nightlyGoToThisWeekBtn" type="button" class="text-xs px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold transition">Go to This Week</button>
+      </div>
+      <div id="nightlyCard" class="max-w-2xl mx-auto rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 shadow-xl space-y-5">
         <div class="flex items-center justify-between flex-wrap gap-3 border-b border-slate-800 pb-4">
           <div>
             <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Nightly Routine</span>
@@ -450,8 +466,8 @@
           </div>
         </div>
 
-        <!-- Per-Habit Breakdown Bars -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Per-Habit Breakdown Bars (hidden for summary-only weeks) -->
+        <div id="summaryBreakdown" class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="rounded-xl border border-slate-800 bg-slate-950/50 p-4 space-y-3">
             <h3 class="text-sm font-bold text-slate-200">Daily Habits Consistency (Out of 7 Days)</h3>
             <div id="summaryDailyBars" class="space-y-2.5"></div>
@@ -469,17 +485,33 @@
       <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 shadow-xl space-y-6">
         <div class="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h2 class="text-lg font-bold text-slate-100">Weekly Score Progression (Out of 68)</h2>
-            <p class="text-xs text-slate-400">Compare your historical sticky notes and finalized weeks over time</p>
+            <h2 class="text-lg font-bold text-slate-100">Trends</h2>
+            <p class="text-xs text-slate-400">Each chart shares the same weeks. Dashed line = target. Gaps = weeks with no data recorded. The current week joins the score chart once it's finalized.</p>
           </div>
         </div>
 
-        <div class="relative h-64 w-full rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-          <canvas id="historyChartCanvas"></canvas>
+        <!-- Small multiples: one measure per chart, each on its own scale (no dual axes) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <figure class="rounded-xl border border-slate-800 bg-slate-950/60 p-3 space-y-1">
+            <figcaption class="text-xs font-semibold text-slate-200">Weekly score <span class="font-normal text-slate-400">(out of 68)</span></figcaption>
+            <div class="relative h-48"><canvas id="trendScoreCanvas" role="img" aria-label="Weekly score out of 68 by week"></canvas></div>
+          </figure>
+          <figure class="rounded-xl border border-slate-800 bg-slate-950/60 p-3 space-y-1">
+            <figcaption class="text-xs font-semibold text-slate-200">Avg sleep <span class="font-normal text-slate-400">(target 7:00 or more)</span></figcaption>
+            <div class="relative h-48"><canvas id="trendSleepCanvas" role="img" aria-label="Average sleep per night by week"></canvas></div>
+          </figure>
+          <figure class="rounded-xl border border-slate-800 bg-slate-950/60 p-3 space-y-1">
+            <figcaption class="text-xs font-semibold text-slate-200">Avg phone use <span class="font-normal text-slate-400">(target under 3:30)</span></figcaption>
+            <div class="relative h-48"><canvas id="trendPhoneCanvas" role="img" aria-label="Average daily phone use by week"></canvas></div>
+          </figure>
+          <figure class="rounded-xl border border-slate-800 bg-slate-950/60 p-3 space-y-1">
+            <figcaption class="text-xs font-semibold text-slate-200">Avg bedtime <span class="font-normal text-slate-400">(target before 12:00 AM)</span></figcaption>
+            <div class="relative h-48"><canvas id="trendBedtimeCanvas" role="img" aria-label="Average bedtime by week"></canvas></div>
+          </figure>
         </div>
 
         <div class="space-y-3">
-          <h3 class="text-sm font-bold text-slate-200">All Logged Weeks</h3>
+          <h3 class="text-sm font-bold text-slate-200">All Logged Weeks <span class="font-normal text-slate-400">(newest first)</span></h3>
           <div id="historyCardsList" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
         </div>
       </div>
@@ -551,7 +583,7 @@
             Download JSON Backup
           </button>
           <label class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 cursor-pointer">
-            Import JSON
+            Import JSON (backup or history)
             <input id="importJsonInput" type="file" accept=".json" class="hidden" />
           </label>
         </div>
@@ -754,7 +786,6 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
     }
 
     let state = createInitialState();
-    let historyChartInstance = null;
 
     // ==================== WEEK NORMALIZATION ====================
     // Finalized weeks keep the scoring formula they were finalized under, so changing
@@ -973,6 +1004,61 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       window.__sbPushTimer = setTimeout(pushPendingToSupabase, 450);
     }
 
+    // "48 / 68", or "— / 68" when the value is unknown (summary weeks, missing totals).
+    function pts(value, max) {
+      return `${value == null ? '—' : value} / ${max}`;
+    }
+
+    // Duration text ("7:24", "7.5h") -> hours as a number, or null.
+    function durationHours(text) {
+      const mins = parseDurationMinutes(text || '');
+      return mins === null ? null : mins / 60;
+    }
+
+    // Hours -> "7:24"
+    function formatHours(h) {
+      const total = Math.round(h * 60);
+      return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+    }
+
+    // Bedtime text -> hours relative to midnight (11:15 PM = -0.75, 1:17 AM = 1.28), or null.
+    function bedtimeHours(text) {
+      if (!text || !text.trim()) return null;
+      const m = text.trim().toLowerCase().replace(/\s+/g, ' ')
+        .match(/^(\d{1,2})(?:[:.](\d{2}))? ?(a\.?m?\.?|p\.?m?\.?)?$/);
+      if (!m) return null;
+      const hr = parseInt(m[1], 10);
+      const mins = m[2] ? parseInt(m[2], 10) : 0;
+      if (mins >= 60) return null;
+      const ampm = m[3] ? m[3][0] : '';
+      let h;
+      if (ampm === 'a') h = (hr % 12) + mins / 60;
+      else if (ampm === 'p') h = (hr % 12) + mins / 60 - 12;
+      else if (hr >= 13 && hr <= 23) h = hr + mins / 60 - 24;   // 24-hour evening
+      else if (hr >= 7 && hr <= 11) h = hr + mins / 60 - 12;    // evening without am/pm
+      else if (hr === 12 || hr <= 6) h = (hr % 12) + mins / 60; // after midnight
+      else return null;
+      return h;
+    }
+
+    // Hours relative to midnight -> "1:17 AM"
+    function formatClock(h) {
+      const total = ((Math.round(h * 60) % 1440) + 1440) % 1440;
+      const hr24 = Math.floor(total / 60);
+      const hr12 = hr24 % 12 === 0 ? 12 : hr24 % 12;
+      return `${hr12}:${String(total % 60).padStart(2, '0')} ${hr24 < 12 ? 'AM' : 'PM'}`;
+    }
+
+    // Escape user-entered text before inserting it into HTML.
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
     function showToast(msg) {
       const el = document.getElementById('toastBanner');
       if (!el) return;
@@ -986,6 +1072,14 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
 
     // ==================== SCORING ENGINE (OUT OF 68) ====================
     function calculateWeekScore(week) {
+      // Imported summary weeks only have a recorded total (possibly unknown = null).
+      if (week.summaryOnly) {
+        const t = week.summary && Number.isFinite(week.summary.total) ? week.summary.total : null;
+        const habitTotals = {};
+        DAILY_HABITS.forEach(h => { habitTotals[h.id] = 0; });
+        return { dailyPoints: null, weeklyPoints: null, total: t, dayTotals: [0, 0, 0, 0, 0, 0, 0], habitTotals, summaryOnly: true };
+      }
+
       let dailyPoints = 0;
       const dayTotals = [0, 0, 0, 0, 0, 0, 0];
       const habitTotals = {};
@@ -1137,16 +1231,32 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       });
 
       // Header & Board scores
-      document.getElementById('headerScoreText').textContent = `${score.total} / 68`;
-      document.getElementById('dailyScoreSub').textContent = `${score.dailyPoints} / 56`;
-      document.getElementById('weeklyScoreSub').textContent = `${score.weeklyPoints} / 12`;
-      document.getElementById('boardTotalScore').textContent = `${score.total} / 68`;
+      document.getElementById('headerScoreText').textContent = pts(score.total, 68);
+      document.getElementById('dailyScoreSub').textContent = pts(score.dailyPoints, 56);
+      document.getElementById('weeklyScoreSub').textContent = pts(score.weeklyPoints, 12);
+      document.getElementById('boardTotalScore').textContent = pts(score.total, 68);
 
       // Week metadata
       document.getElementById('weekDateBadge').textContent = week.label;
       document.getElementById('weekNoteInput').value = week.note || '';
       const statusPill = document.getElementById('weekStatusPill');
-      if (week.finalized) {
+      // Summary-only (imported) weeks: show the recorded stats instead of the grids
+      const isSummary = !!week.summaryOnly;
+      document.getElementById('boardSummaryNotice').classList.toggle('hidden', !isSummary);
+      document.getElementById('boardDetailGrid').classList.toggle('hidden', isSummary);
+      document.getElementById('nightlySummaryNotice').classList.toggle('hidden', !isSummary);
+      document.getElementById('nightlyCard').classList.toggle('hidden', isSummary);
+      document.getElementById('summaryBreakdown').classList.toggle('hidden', isSummary);
+      if (isSummary) {
+        const w = week.weekly;
+        document.getElementById('boardSummaryStats').textContent =
+          `Total ${pts(score.total, 68)} • Sleep ${w.avgSleepText || '—'} • Phone ${w.avgPhoneText || '—'} • Bedtime ${w.avgBedtimeText || '—'}`;
+      }
+
+      if (isSummary) {
+        statusPill.textContent = 'Summary Week';
+        statusPill.className = 'text-xs px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-medium';
+      } else if (week.finalized) {
         statusPill.textContent = 'Finalized Week';
         statusPill.className = 'text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium';
       } else {
@@ -1158,8 +1268,8 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       renderMatrixGrid(week, score);
       renderNightlyView(week);
       renderSummaryView(week, score);
-      renderHistoryView();
       updateActiveTabUI();
+      renderHistoryView();
     }
 
     function renderWeeklyLeftColumn(week) {
@@ -1517,10 +1627,10 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
     function renderSummaryView(week, score) {
       document.getElementById('summaryWeekTitle').textContent = `${week.label} — Summary`;
       const pct = Math.round((score.total / 68) * 100);
-      document.getElementById('sumFinalScore').textContent = `${score.total} / 68`;
+      document.getElementById('sumFinalScore').textContent = pts(score.total, 68);
       document.getElementById('sumGradeLabel').textContent = `${pct}% weekly score`;
-      document.getElementById('sumDailyPoints').textContent = `${score.dailyPoints} / 56`;
-      document.getElementById('sumWeeklyPoints').textContent = `${score.weeklyPoints} / 12`;
+      document.getElementById('sumDailyPoints').textContent = pts(score.dailyPoints, 56);
+      document.getElementById('sumWeeklyPoints').textContent = pts(score.weeklyPoints, 12);
       document.getElementById('sumGymMedLabel').textContent = `Gym: ${week.weekly.gymCount || 0}/4 • Work: ${week.weekly.workCount || 0}/4 • Med: ${week.weekly.meditateCount || 0}/2 • Abs: ${week.weekly.absCount || 0}/2`;
 
       // Sync the 3 average inputs in Summary tab
@@ -1541,6 +1651,13 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       const phoneBadge = document.getElementById('sumPhoneBadge');
       phoneBadge.textContent = week.weekly.avgPhoneMet ? 'PASS' : 'MISS';
       phoneBadge.className = week.weekly.avgPhoneMet ? 'text-xs px-2 py-1 rounded bg-emerald-500/20 text-emerald-300 font-bold' : 'text-xs px-2 py-1 rounded bg-slate-800 text-slate-400 font-bold';
+
+      if (score.summaryOnly) {
+        document.getElementById('sumBestDayLabel').textContent = 'No daily breakdown recorded';
+        document.getElementById('sumTopHabit').textContent = '—';
+        document.getElementById('sumFocusHabit').textContent = 'Summary week (total only)';
+        return; // per-habit bars & checklist are hidden for summary weeks
+      }
 
       // Best day
       let bestDayIdx = 0;
@@ -1601,33 +1718,109 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       `).join('');
     }
 
+    // ---------- Trends: small multiples, one measure per chart, shared week axis ----------
+    const TREND_COLORS = {
+      line: '#fbbf24',                     // amber-400 (app accent), single series per chart
+      target: '#94a3b8',                   // slate-400, dashed reference line
+      grid: 'rgba(148, 163, 184, 0.12)',
+      tick: '#94a3b8',
+      surface: '#0b1120'
+    };
+    const trendCharts = {};
+
+    function renderTrendChart(canvasId, labels, values, cfg) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || typeof Chart === 'undefined') return;
+      if (trendCharts[canvasId]) trendCharts[canvasId].destroy();
+      const datasets = [{
+        label: cfg.label,
+        data: values,
+        borderColor: TREND_COLORS.line,
+        backgroundColor: TREND_COLORS.line,
+        borderWidth: 2,
+        tension: 0.25,
+        spanGaps: false,                   // missing weeks show as gaps, not invented values
+        pointRadius: 4,                    // 8px markers
+        pointHoverRadius: 6,
+        pointBorderColor: TREND_COLORS.surface,
+        pointBorderWidth: 2                // surface ring keeps markers distinct from the line
+      }];
+      if (cfg.target != null) {
+        datasets.push({
+          label: 'Target',
+          data: labels.map(() => cfg.target),
+          borderColor: TREND_COLORS.target,
+          borderWidth: 1,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          pointHoverRadius: 0
+        });
+      }
+      trendCharts[canvasId] = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          interaction: { mode: 'index', intersect: false },   // hover anywhere in a week's column
+          scales: {
+            y: {
+              suggestedMin: cfg.min,
+              suggestedMax: cfg.max,
+              max: cfg.hardMax,
+              grid: { color: TREND_COLORS.grid },
+              border: { display: false },
+              ticks: { color: TREND_COLORS.tick, maxTicksLimit: 5, callback: (v) => cfg.fmt(v) }
+            },
+            x: {
+              grid: { display: false },
+              ticks: { color: TREND_COLORS.tick, maxRotation: 0, autoSkipPadding: 12 }
+            }
+          },
+          plugins: {
+            legend: { display: false },    // single series: the chart title names it
+            tooltip: {
+              filter: (item) => item.datasetIndex === 0,
+              callbacks: {
+                title: (items) => items.length ? `Week of ${items[0].label}` : '',
+                label: (item) => item.raw == null ? 'No data' : `${cfg.label}: ${cfg.fmt(item.raw)}${cfg.target != null ? `  (target ${cfg.fmt(cfg.target)})` : ''}`
+              }
+            }
+          }
+        }
+      });
+    }
+
     function renderHistoryView() {
       const sortedIds = Object.keys(state.weeks).sort();
-      const labels = [];
-      const totals = [];
 
+      // ----- Week cards (newest first) -----
       const listEl = document.getElementById('historyCardsList');
       listEl.innerHTML = '';
-
-      sortedIds.forEach(id => {
+      [...sortedIds].reverse().forEach(id => {
         const wk = state.weeks[id];
         const sc = calculateWeekScore(wk);
-        labels.push(wk.label.replace(' (Current Week)', ''));
-        totals.push(sc.total);
-
+        const w = wk.weekly || {};
+        const detail = sc.summaryOnly
+          ? 'Summary week (total only)'
+          : `Daily: ${sc.dailyPoints}/56 • Weekly: ${sc.weeklyPoints}/12`;
         const card = document.createElement('div');
         card.className = 'rounded-xl border border-slate-800 bg-slate-950/60 p-4 flex items-center justify-between gap-3';
         card.innerHTML = `
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-bold text-sm text-slate-100">${wk.label}</span>
-              ${wk.note ? `<span class="text-xs px-2 py-0.5 rounded bg-amber-400/15 text-amber-300">${wk.note}</span>` : ''}
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold text-sm text-slate-100">${escapeHtml(wk.label)}</span>
+              ${sc.summaryOnly ? '<span class="text-[11px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30">Summary</span>' : ''}
+              ${!wk.finalized && !sc.summaryOnly && id >= weekIdFor(habitToday()) ? '<span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">In progress</span>' : ''}
+              ${wk.note ? `<span class="text-xs px-2 py-0.5 rounded bg-amber-400/15 text-amber-300">${escapeHtml(wk.note)}</span>` : ''}
             </div>
-            <div class="text-xs text-slate-400 mt-1">Daily: ${sc.dailyPoints}/56 • Weekly: ${sc.weeklyPoints}/12 • Sleep: ${wk.weekly.avgSleepText || '-'}</div>
+            <div class="text-xs text-slate-400 mt-1">${detail}</div>
+            <div class="text-xs text-slate-400">Sleep ${escapeHtml(w.avgSleepText || '—')} • Phone ${escapeHtml(w.avgPhoneText || '—')} • Bed ${escapeHtml(w.avgBedtimeText || '—')}</div>
           </div>
-          <div class="text-right">
-            <div class="text-xl font-black text-amber-400">${sc.total}/68</div>
-            <button type="button" data-open-week="${id}" class="text-xs text-sky-400 hover:underline mt-0.5">Open Week →</button>
+          <div class="text-right shrink-0">
+            <div class="text-xl font-black text-amber-400">${sc.total == null ? '—' : sc.total}/68</div>
+            <button type="button" data-open-week="${escapeHtml(id)}" class="text-xs text-sky-400 hover:underline mt-0.5">Open Week →</button>
           </div>
         `;
         listEl.appendChild(card);
@@ -1642,49 +1835,22 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
         });
       });
 
-      // Render Chart.js if visible
-      const canvas = document.getElementById('historyChartCanvas');
-      if (canvas && typeof Chart !== 'undefined') {
-        if (historyChartInstance) {
-          historyChartInstance.destroy();
-        }
-        historyChartInstance = new Chart(canvas.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [{
-              label: 'Weekly Score (out of 68)',
-              data: totals,
-              borderColor: '#fbbf24',
-              backgroundColor: 'rgba(251, 191, 36, 0.15)',
-              borderWidth: 3,
-              fill: true,
-              tension: 0.3,
-              pointRadius: 5,
-              pointBackgroundColor: '#fbbf24'
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              y: {
-                min: 0,
-                max: 68,
-                grid: { color: 'rgba(148, 163, 184, 0.1)' },
-                ticks: { color: '#94a3b8' }
-              },
-              x: {
-                grid: { display: false },
-                ticks: { color: '#94a3b8' }
-              }
-            },
-            plugins: {
-              legend: { labels: { color: '#e2e8f0' } }
-            }
-          }
-        });
-      }
+      // ----- Charts: only build them when the Trends tab is visible -----
+      if (state.activeView !== 'history') return;
+      const labels = sortedIds.map(id => parseIsoDate(id).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      const weeks = sortedIds.map(id => state.weeks[id]);
+      // Leave out the current (unfinished) week so a partial score doesn't look like a crash.
+      const thisWeekId = weekIdFor(habitToday());
+      const inProgress = (wk) => !wk.finalized && !wk.summaryOnly && wk.id >= thisWeekId;
+      const scores = weeks.map(wk => inProgress(wk) ? null : calculateWeekScore(wk).total);
+      const sleep = weeks.map(wk => durationHours(wk.weekly && wk.weekly.avgSleepText));
+      const phone = weeks.map(wk => durationHours(wk.weekly && wk.weekly.avgPhoneText));
+      const bed = weeks.map(wk => bedtimeHours(wk.weekly && wk.weekly.avgBedtimeText));
+
+      renderTrendChart('trendScoreCanvas', labels, scores, { label: 'Score', min: 30, max: 68, hardMax: 68, fmt: (v) => `${Math.round(v)}` });
+      renderTrendChart('trendSleepCanvas', labels, sleep, { label: 'Avg sleep', target: 7, min: 6, max: 8.5, fmt: formatHours });
+      renderTrendChart('trendPhoneCanvas', labels, phone, { label: 'Avg phone', target: 3.5, min: 2, max: 6, fmt: formatHours });
+      renderTrendChart('trendBedtimeCanvas', labels, bed, { label: 'Avg bedtime', target: 0, min: -1, max: 3, fmt: formatClock });
     }
 
     function updateActiveTabUI() {
@@ -1965,7 +2131,16 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
         reader.onload = (ev) => {
           try {
             const imported = JSON.parse(ev.target.result);
-            if (imported && imported.weeks) {
+            if (imported && imported.type === 'habit-history' && Array.isArray(imported.weeks)) {
+              // History file: merge in, never replaces your existing data
+              const r = mergeHistoryImport(imported.weeks);
+              saveState(`History imported: ${r.added} added, ${r.updated} updated, ${r.unchanged || 0} unchanged, ${r.kept} detailed kept`);
+              state.activeView = 'history';
+              renderAll();
+              document.getElementById('supabaseModal').classList.add('hidden');
+            } else if (imported && imported.weeks) {
+              // Full backup: replaces everything on this device
+              if (!confirm('Restore this backup? It replaces ALL weeks on this device.')) return;
               state = Object.assign(createInitialState(), imported);
               if (!Array.isArray(state.pendingSync)) state.pendingSync = [];
               Object.values(state.weeks).forEach(normalizeWeek);
@@ -1975,11 +2150,66 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
               document.getElementById('supabaseModal').classList.add('hidden');
             }
           } catch (err) {
+            console.error('Import failed:', err);
             showToast('Invalid JSON file');
           }
+          e.target.value = ''; // allow re-importing the same file
         };
         reader.readAsText(file);
       });
+
+      document.getElementById('nightlyGoToThisWeekBtn').addEventListener('click', () => {
+        selectToday();
+        state.activeView = 'nightly';
+        saveState();
+        renderAll();
+      });
+    }
+
+    // Merge a history file ({ weekStart, total, avgSleep, avgPhone, avgBedtime } rows).
+    // - New weeks become summary-only weeks (total + averages, no daily grid).
+    // - Existing summary weeks are replaced with the file's values.
+    // - Existing detailed weeks are kept; only blank averages are filled in
+    //   (their pass/fail checkboxes and score are left untouched).
+    function mergeHistoryImport(rows) {
+      const result = { added: 0, updated: 0, kept: 0, skipped: 0 };
+      const clean = (v) => (v == null || v === '' || v === '?' || /^n\/?a$/i.test(String(v))) ? '' : String(v).trim();
+      rows.forEach(row => {
+        if (!row || !/^\d{4}-\d{2}-\d{2}$/.test(row.weekStart || '')) { result.skipped++; return; }
+        const id = weekIdFor(parseIsoDate(row.weekStart)); // snap to that week's Sunday
+        const sleep = clean(row.avgSleep), phone = clean(row.avgPhone), bed = clean(row.avgBedtime);
+        const existing = state.weeks[id];
+
+        if (existing && !existing.summaryOnly) {
+          const w = existing.weekly;
+          if (!w.avgSleepText && sleep) w.avgSleepText = sleep;
+          if (!w.avgPhoneText && phone) w.avgPhoneText = phone;
+          if (!w.avgBedtimeText && bed) w.avgBedtimeText = bed;
+          result.kept++;
+          return;
+        }
+
+        const wk = createWeek(id);
+        wk.summaryOnly = true;
+        wk.finalized = true;
+        wk.scoringMode = state.scoringMode;
+        wk.summary = { total: Number.isFinite(row.total) ? row.total : null };
+        wk.weekly.avgSleepText = sleep;
+        wk.weekly.avgPhoneText = phone;
+        wk.weekly.avgBedtimeText = bed;
+        wk.weekly.avgSleepMet = evaluateSleepInput(sleep) === true;
+        wk.weekly.avgPhoneMet = evaluatePhoneInput(phone) === true;
+        wk.weekly.avgBedtimeMet = evaluateBedtimeInput(bed) === true;
+        if (existing) {
+          wk.note = existing.note || '';
+          if (weekContent(existing) === weekContent(wk)) { result.unchanged = (result.unchanged || 0) + 1; return; }
+          result.updated++;
+        } else {
+          result.added++;
+        }
+        state.weeks[id] = wk;
+      });
+      return result;
     }
 
     // Boot
