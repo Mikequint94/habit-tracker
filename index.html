@@ -189,7 +189,7 @@
               <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5">
                 <div class="min-w-0">
                   <div class="text-xs sm:text-sm font-semibold text-slate-100">Avg sleep over 7 hours</div>
-                  <div class="text-[11px] text-slate-400">Target: &gt; 7:00 hr/night</div>
+                  <div class="text-[11px] text-slate-400">Target: &gt; 7:00 hr/night<span id="avgSleepAutoHint" class="text-sky-300"></span></div>
                 </div>
                 <div class="flex items-center gap-2">
                   <input id="avgSleepInput" type="text" placeholder="e.g. 7:28" class="w-20 bg-slate-950 border border-slate-700 rounded-md px-2 py-1 text-xs text-center font-mono text-slate-100 focus:border-amber-400 focus:outline-none" />
@@ -201,7 +201,7 @@
               <div class="flex items-center justify-between gap-2 bg-slate-900/90 border border-slate-800/80 rounded-lg p-2.5">
                 <div class="min-w-0">
                   <div class="text-xs sm:text-sm font-semibold text-slate-100">Avg bedtime before 12:00am</div>
-                  <div class="text-[11px] text-slate-400">Target: &lt; 12:00 AM (e.g. 11:15 pm)</div>
+                  <div class="text-[11px] text-slate-400">Target: &lt; 12:00 AM (e.g. 11:15 pm)<span id="avgBedtimeAutoHint" class="text-sky-300"></span></div>
                 </div>
                 <div class="flex items-center gap-2">
                   <input id="avgBedtimeInput" type="text" placeholder="11:15 pm" class="w-20 bg-slate-950 border border-slate-700 rounded-md px-2 py-1 text-xs text-center font-mono text-slate-100 focus:border-amber-400 focus:outline-none" />
@@ -323,6 +323,7 @@
               <div class="text-xs text-slate-400 space-y-0.5">
                 <div class="font-semibold text-slate-200">Post-It Shorthand Codes:</div>
                 <div><span class="text-amber-300 font-mono">G</span> Gratitude • <span class="text-amber-300 font-mono">E</span> Eat &lt;11am • <span class="text-amber-300 font-mono">St</span> Stretch • <span class="text-amber-300 font-mono">Sk</span> Daily Skills • <span class="text-amber-300 font-mono">V</span> Vitamins • <span class="text-amber-300 font-mono">C</span> Phone &lt;4h • <span class="text-amber-300 font-mono">Z</span> Sleep &lt;12:30 • <span class="text-amber-300 font-mono">P</span> 150g+ Protein</div>
+                <div><span class="inline-block w-2 h-2 rounded-full bg-sky-400 align-middle"></span> Filled automatically (Fitbit sleep, food log). Tap to change it yourself.</div>
               </div>
               <button id="togglePhotoRefBtn" type="button" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 shrink-0">
                 View Feb 1 Sticky Note Photo
@@ -906,6 +907,123 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       }, extra || {});
     }
 
+    // ==================== AUTOMATIC HABITS ====================
+    // morning-briefing writes one habit_auto row per day: that night's Fitbit sleep (Google Health)
+    // and that day's protein + first meal time (veg-macro-calc food log). See supabase-habit-auto.sql.
+    // Rules mirror morning-briefing's src/habitAuto.mjs; keep them in sync:
+    //  - a box you tapped yourself is never changed by auto (week.touched)
+    //  - auto never unticks a box it didn't tick (week.auto remembers what auto set)
+    //  - breakfast is only ever ticked (log time isn't eating time)
+    const AUTO_RULES = {
+      sleepByMinutes: 30,        // asleep before 12:30am the next morning
+      proteinMin: 150,           // grams
+      firstMealByMinutes: 11 * 60 // first food logged before 11:00am
+    };
+    const AUTO_SOURCES = { sleep_before_1230: 'Fitbit sleep', protein: 'food log', breakfast: 'food log' };
+    let lastAutoRows = [];
+
+    function localMidnightMs(ymd) {
+      return new Date(ymd + 'T00:00:00').getTime();
+    }
+
+    // true / false / null (unknown) for each automatic daily habit on one habit_auto row.
+    function autoValues(row) {
+      const v = { sleep_before_1230: null, protein: null, breakfast: null };
+      if (row.bedtime) {
+        v.sleep_before_1230 = Date.parse(row.bedtime) <= localMidnightMs(addDays(row.day, 1)) + AUTO_RULES.sleepByMinutes * 60000;
+      }
+      if (Number(row.food_items) > 0 && row.protein_g != null) v.protein = Number(row.protein_g) >= AUTO_RULES.proteinMin;
+      if (row.first_meal_at && Date.parse(row.first_meal_at) <= localMidnightMs(row.day) + AUTO_RULES.firstMealByMinutes * 60000) {
+        v.breakfast = true;
+      }
+      return v;
+    }
+
+    // Record a manual tap so automatic data never overrides it.
+    function markTouched(week, habitId, dayIdx) {
+      week.touched = week.touched || {};
+      (week.touched[habitId] = week.touched[habitId] || [false, false, false, false, false, false, false])[dayIdx] = true;
+      if (week.auto && week.auto[habitId]) week.auto[habitId][dayIdx] = false;
+    }
+
+    function isAutoFilled(week, habitId, dayIdx) {
+      return !!(week.auto && week.auto[habitId] && week.auto[habitId][dayIdx]);
+    }
+
+    // Typed-in averages win. Older weeks with a typed value (from before auto existed) count as typed.
+    function avgIsManual(w, kind) {
+      return kind === 'sleep'
+        ? !!(w.avgSleepManual || (w.avgSleepText && !w.avgSleepAutoNights))
+        : !!(w.avgBedtimeManual || (w.avgBedtimeText && !w.avgBedtimeAutoNights));
+    }
+
+    // Apply habit_auto rows to the weeks. Returns true if anything changed.
+    function applyAutoRows(rows) {
+      const before = JSON.stringify(state.weeks);
+      const thisWeekId = weekIdFor(habitToday());
+      const nightsByWeek = {};
+
+      rows.forEach(row => {
+        if (!row || !/^\d{4}-\d{2}-\d{2}$/.test(row.day || '')) return;
+        const date = parseIsoDate(row.day);
+        const weekId = weekIdFor(date);
+        if (weekId > thisWeekId) return;
+        const week = ensureWeek(weekId);
+        if (week.summaryOnly) return;
+        const idx = date.getDay();
+
+        Object.entries(autoValues(row)).forEach(([habitId, value]) => {
+          if (value === null) return;
+          if (week.touched && week.touched[habitId] && week.touched[habitId][idx]) return;
+          const checks = week.daily[habitId];
+          if (value === false && checks[idx] && !isAutoFilled(week, habitId, idx)) return; // your own tick stays
+          checks[idx] = value;
+          week.auto = week.auto || {};
+          (week.auto[habitId] = week.auto[habitId] || [false, false, false, false, false, false, false])[idx] = true;
+        });
+
+        if (row.bedtime) (nightsByWeek[weekId] = nightsByWeek[weekId] || []).push(row);
+      });
+
+      // Weekly sleep & bedtime averages from the nights recorded so far (unless typed in).
+      Object.entries(nightsByWeek).forEach(([weekId, nights]) => {
+        const w = state.weeks[weekId].weekly;
+        const asleep = nights.filter(n => n.asleep_minutes != null).map(n => Number(n.asleep_minutes));
+        if (asleep.length && !avgIsManual(w, 'sleep')) {
+          w.avgSleepText = formatHours(asleep.reduce((a, b) => a + b, 0) / asleep.length / 60);
+          w.avgSleepMet = evaluateSleepInput(w.avgSleepText) === true;
+          w.avgSleepAutoNights = asleep.length;
+        }
+        if (!avgIsManual(w, 'bedtime')) {
+          const rel = nights.map(n => (Date.parse(n.bedtime) - localMidnightMs(addDays(n.day, 1))) / 3600000);
+          w.avgBedtimeText = formatClock(rel.reduce((a, b) => a + b, 0) / rel.length);
+          w.avgBedtimeMet = evaluateBedtimeInput(w.avgBedtimeText) === true;
+          w.avgBedtimeAutoNights = rel.length;
+        }
+      });
+
+      return JSON.stringify(state.weeks) !== before;
+    }
+
+    // Fetch the last ~8 weeks of automatic values. Before the SQL is set up the table doesn't exist,
+    // which is fine: auto habits simply stay off.
+    async function pullAutoHabits() {
+      try {
+        const since = addDays(weekIdFor(habitToday()), -56);
+        const sbHost = state.supabaseUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+        const res = await fetch(`https://${sbHost}/rest/v1/habit_auto?select=*&day=gte.${since}&order=day`, { headers: supabaseHeaders() });
+        if (!res.ok) {
+          console.info(`Automatic habits unavailable (${res.status}); run supabase-habit-auto.sql to turn them on.`);
+          return false;
+        }
+        lastAutoRows = await res.json();
+        return applyAutoRows(Array.isArray(lastAutoRows) ? lastAutoRows : []);
+      } catch (err) {
+        console.warn('Automatic habits fetch failed:', err);
+        return false;
+      }
+    }
+
     // Pull every remote week and merge: for each week, whichever side has the newer
     // `updatedAt` wins. Local weeks that are newer (or missing remotely) get queued for upload.
     async function pullFromSupabase() {
@@ -940,6 +1058,12 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
         Object.keys(state.weeks).forEach(id => {
           if (!remoteIds.has(id)) markPending(id);
         });
+
+        // Fill in automatic habits on the merged weeks; changed weeks get queued for upload.
+        if (await pullAutoHabits()) {
+          stampChangedWeeks();
+          changedLocal = true;
+        }
 
         writeLocal();
         if (changedLocal) renderAll();
@@ -1284,6 +1408,10 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
         ? 'w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center text-sm font-black transition'
         : 'w-7 h-7 rounded-lg border border-slate-700 bg-slate-950 text-slate-500 hover:border-slate-500 flex items-center justify-center text-sm font-bold transition';
 
+      const autoHint = (n, manual) => (n && !manual) ? ` • auto from ${n} night${n === 1 ? '' : 's'}` : '';
+      document.getElementById('avgSleepAutoHint').textContent = autoHint(w.avgSleepAutoNights, avgIsManual(w, 'sleep'));
+      document.getElementById('avgBedtimeAutoHint').textContent = autoHint(w.avgBedtimeAutoNights, avgIsManual(w, 'bedtime'));
+
       const bedInp = document.getElementById('avgBedtimeInput');
       if (document.activeElement !== bedInp) bedInp.value = w.avgBedtimeText || '';
       const bedBtn = document.getElementById('avgBedtimeCheckBtn');
@@ -1450,20 +1578,23 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
         `;
 
         rowArr.forEach((done, dayIdx) => {
+          const auto = isAutoFilled(week, habit.id, dayIdx);
           cellsHtml += `
             <td class="p-1.5 text-center ${dayIdx === state.selectedDayIndex ? 'bg-amber-400/5' : ''}">
               <button
                 type="button"
                 data-habit="${habit.id}"
                 data-day="${dayIdx}"
-                aria-label="${habit.name} on ${DAYS[dayIdx].label}"
-                class="dot-cell mx-auto w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition ${
+                aria-label="${habit.name} on ${DAYS[dayIdx].label}${auto ? `, filled automatically from your ${AUTO_SOURCES[habit.id]}` : ''}"
+                ${auto ? `title="Filled automatically from your ${AUTO_SOURCES[habit.id]}. Tap to change it yourself."` : ''}
+                class="dot-cell relative mx-auto w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition ${
                   done
                     ? 'bg-amber-400/20 border border-amber-400/50 text-amber-300 shadow-sm'
                     : 'bg-slate-900/60 border border-slate-800/80 text-slate-600 hover:border-slate-700'
                 }"
               >
                 <span class="${done ? 'w-3.5 h-3.5 rounded-full bg-amber-400 block shadow' : 'w-1.5 h-1.5 rounded-full bg-slate-700 block'}"></span>
+                ${auto ? '<span class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-sky-400 ring-2 ring-slate-950" aria-hidden="true"></span>' : ''}
               </button>
             </td>
           `;
@@ -1484,6 +1615,7 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
           const hId = btn.getAttribute('data-habit');
           const dIdx = parseInt(btn.getAttribute('data-day'), 10);
           week.daily[hId][dIdx] = !week.daily[hId][dIdx];
+          markTouched(week, hId, dIdx);
           saveState();
           renderAll();
         });
@@ -1533,6 +1665,7 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       container.innerHTML = '';
       DAILY_HABITS.forEach(h => {
         const done = !!week.daily[h.id][state.selectedDayIndex];
+        const auto = isAutoFilled(week, h.id, state.selectedDayIndex);
         const card = document.createElement('button');
         card.type = 'button';
         card.className = done
@@ -1543,8 +1676,9 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
             <div class="flex items-center gap-2">
               <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded ${done ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'}">${h.code}</span>
               <span class="text-sm font-semibold ${done ? 'text-amber-200' : 'text-slate-100'}">${h.name}</span>
+              ${auto ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30" title="Filled automatically from your ${AUTO_SOURCES[h.id]}">auto</span>` : ''}
             </div>
-            <p class="text-[11px] text-slate-400 mt-1">${h.desc}</p>
+            <p class="text-[11px] text-slate-400 mt-1">${h.desc}${auto ? ` · from your ${AUTO_SOURCES[h.id]}, tap to change` : ''}</p>
           </div>
           <div class="w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${done ? 'bg-amber-400 text-slate-950 font-black' : 'border border-slate-700 bg-slate-900'}">
             ${done ? '●' : ''}
@@ -1552,6 +1686,7 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
         `;
         card.addEventListener('click', () => {
           week.daily[h.id][state.selectedDayIndex] = !week.daily[h.id][state.selectedDayIndex];
+          markTouched(week, h.id, state.selectedDayIndex);
           saveState();
           renderAll();
         });
@@ -1994,10 +2129,14 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       });
 
       // 3 Average inputs on Board & Summary (auto-evaluate + manual toggle)
+      // Typing an average makes it yours (automatic sleep data stops updating it); clearing the
+      // box hands it back to the automatic value.
       function handleSleepChange(val) {
         const wk = getCurrentWeek();
         wk.weekly.avgSleepText = val;
-        const auto = evaluateSleepInput(val);
+        wk.weekly.avgSleepManual = val.trim() !== '';
+        if (!wk.weekly.avgSleepManual) { wk.weekly.avgSleepAutoNights = 0; applyAutoRows(lastAutoRows); }
+        const auto = evaluateSleepInput(wk.weekly.avgSleepText);
         if (auto !== null) wk.weekly.avgSleepMet = auto;
         saveState();
         renderAll();
@@ -2005,7 +2144,9 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       function handleBedtimeChange(val) {
         const wk = getCurrentWeek();
         wk.weekly.avgBedtimeText = val;
-        const auto = evaluateBedtimeInput(val);
+        wk.weekly.avgBedtimeManual = val.trim() !== '';
+        if (!wk.weekly.avgBedtimeManual) { wk.weekly.avgBedtimeAutoNights = 0; applyAutoRows(lastAutoRows); }
+        const auto = evaluateBedtimeInput(wk.weekly.avgBedtimeText);
         if (auto !== null) wk.weekly.avgBedtimeMet = auto;
         saveState();
         renderAll();
@@ -2024,6 +2165,7 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       document.getElementById('avgSleepCheckBtn').addEventListener('click', () => {
         const wk = getCurrentWeek();
         wk.weekly.avgSleepMet = !wk.weekly.avgSleepMet;
+        wk.weekly.avgSleepManual = true; // a manual pass/fail sticks
         saveState();
         renderAll();
       });
@@ -2033,6 +2175,7 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       document.getElementById('avgBedtimeCheckBtn').addEventListener('click', () => {
         const wk = getCurrentWeek();
         wk.weekly.avgBedtimeMet = !wk.weekly.avgBedtimeMet;
+        wk.weekly.avgBedtimeManual = true; // a manual pass/fail sticks
         saveState();
         renderAll();
       });
@@ -2051,6 +2194,7 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
         const wk = getCurrentWeek();
         DAILY_HABITS.forEach(h => {
           wk.daily[h.id][state.selectedDayIndex] = true;
+          markTouched(wk, h.id, state.selectedDayIndex);
         });
         saveState(`Checked all 8 habits for ${DAYS[state.selectedDayIndex].label}!`);
         renderAll();

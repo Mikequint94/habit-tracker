@@ -30,6 +30,18 @@ npm run build:css  # regenerates tailwind.css — commit it
 
 If you change any file listed in `sw.js`, bump `CACHE_VERSION` there so installed copies pick up the update.
 
+## Automatic habits (sleep, protein, breakfast)
+If you use morning-briefing, it can fill in **Sleep before 12:30am**, **150g+ protein**, **Breakfast before 11am**
+and the weekly **sleep / bedtime averages** from your Fitbit sleep (Google Health) and veg-macro-calc food log.
+Setup: run `supabase-habit-auto.sql` in the Supabase SQL Editor, then follow "Automatic habits" in
+morning-briefing's README.
+
+- Auto-filled boxes have a small blue dot. Tap one to change it; from then on it's yours and auto leaves it alone.
+- Auto never unticks a box you ticked yourself, and only ever ticks breakfast (log time isn't eating time).
+- Type in an average to override it; clear the box to go back to the automatic value.
+- The rules (12:30am, 150g, 11am) live in `AUTO_RULES` in `index.html` and must match morning-briefing's
+  `HABITS.auto`.
+
 ## How sync works
 - Each week records when it was last edited (`updatedAt`). Only weeks you changed are uploaded.
 - On open, when you come back to the app, and when you go back online, the app pulls from Supabase and keeps the **newer copy of each week**.
