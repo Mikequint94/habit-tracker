@@ -926,11 +926,24 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
       return new Date(ymd + 'T00:00:00').getTime();
     }
 
+    // A night's bedtime as minutes from midnight on the clock where you slept (11:15 PM = -45,
+    // 12:20 AM = 20), using the UTC offset Google Health recorded for that night, so a trip doesn't get
+    // converted to this device's time zone. Older rows without an offset use this device's clock.
+    function bedtimeVsMidnight(row) {
+      const offset = row.bedtime_utc_offset;
+      if (offset !== null && offset !== undefined && Number.isFinite(Number(offset))) {
+        const local = new Date(Date.parse(row.bedtime) + Number(offset) * 60000);
+        const m = local.getUTCHours() * 60 + local.getUTCMinutes();
+        return m >= 12 * 60 ? m - 24 * 60 : m;
+      }
+      return (Date.parse(row.bedtime) - localMidnightMs(addDays(row.day, 1))) / 60000;
+    }
+
     // true / false / null (unknown) for each automatic daily habit on one habit_auto row.
     function autoValues(row) {
       const v = { sleep_before_1230: null, protein: null, breakfast: null };
       if (row.bedtime) {
-        v.sleep_before_1230 = Date.parse(row.bedtime) <= localMidnightMs(addDays(row.day, 1)) + AUTO_RULES.sleepByMinutes * 60000;
+        v.sleep_before_1230 = bedtimeVsMidnight(row) <= AUTO_RULES.sleepByMinutes;
       }
       if (Number(row.food_items) > 0 && row.protein_g != null) v.protein = Number(row.protein_g) >= AUTO_RULES.proteinMin;
       if (row.first_meal_at && Date.parse(row.first_meal_at) <= localMidnightMs(row.day) + AUTO_RULES.firstMealByMinutes * 60000) {
@@ -995,7 +1008,7 @@ create policy "Public anon access" on public.habit_weeks for all using (true) wi
           w.avgSleepAutoNights = asleep.length;
         }
         if (!avgIsManual(w, 'bedtime')) {
-          const rel = nights.map(n => (Date.parse(n.bedtime) - localMidnightMs(addDays(n.day, 1))) / 3600000);
+          const rel = nights.map(n => bedtimeVsMidnight(n) / 60); // hours vs midnight, local to each night
           w.avgBedtimeText = formatClock(rel.reduce((a, b) => a + b, 0) / rel.length);
           w.avgBedtimeMet = evaluateBedtimeInput(w.avgBedtimeText) === true;
           w.avgBedtimeAutoNights = rel.length;

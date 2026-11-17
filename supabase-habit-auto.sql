@@ -23,6 +23,10 @@ create table if not exists public.habit_auto (
   updated_at         timestamptz not null default now()
 );
 
+-- Added Nov 2026: minutes ahead of UTC where you slept (from Google Health), so bedtimes are judged on the
+-- local clock when traveling instead of being converted to Pacific. Safe to re-run.
+alter table public.habit_auto add column if not exists bedtime_utc_offset integer;
+
 alter table public.habit_auto enable row level security;
 
 -- The habit tracker reads with the public key (the same access habit_weeks has).
@@ -106,9 +110,10 @@ begin
     raise exception 'p_rows must be an array of at most 31 days';
   end if;
 
-  insert into habit_auto (day, bedtime, wake_time, asleep_minutes, protein_g, food_items, first_meal_at, updated_at)
+  insert into habit_auto (day, bedtime, bedtime_utc_offset, wake_time, asleep_minutes, protein_g, food_items, first_meal_at, updated_at)
   select (r ->> 'day')::date,
          (r ->> 'bedtime')::timestamptz,
+         (r ->> 'bedtime_utc_offset')::integer,
          (r ->> 'wake_time')::timestamptz,
          (r ->> 'asleep_minutes')::integer,
          (r ->> 'protein_g')::integer,
@@ -118,6 +123,8 @@ begin
   from jsonb_array_elements(p_rows) as r
   on conflict (day) do update set
     bedtime        = coalesce(excluded.bedtime,        habit_auto.bedtime),
+    -- The offset belongs to the bedtime: replace it whenever a new bedtime arrives.
+    bedtime_utc_offset = case when excluded.bedtime is not null then excluded.bedtime_utc_offset else habit_auto.bedtime_utc_offset end,
     wake_time      = coalesce(excluded.wake_time,      habit_auto.wake_time),
     asleep_minutes = coalesce(excluded.asleep_minutes, habit_auto.asleep_minutes),
     protein_g      = coalesce(excluded.protein_g,      habit_auto.protein_g),
